@@ -1,10 +1,19 @@
 OUTPUT_FORMAT("binary")
-ENTRY(kernel_entry)
+ENTRY(_start)
 SECTIONS
 {
-    . = 0x100000;   /* adres, gdzie bootloader wczyta kernel */
-    .text : { *(.text) }
-    .rodata : { *(.rodata) }
-    .data : { *(.data) }
-    .bss : { *(.bss) }
+    . = 0x0000;
+    
+    .text : {
+        *(.text)
+    }
+    
+    .data : {
+        *(.data)
+        *(.rodata)
+    }
+    
+    .bss : {
+        *(.bss)
+    }
 }

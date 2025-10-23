@@ -1,18 +1,15 @@
 NASM = nasm
-ASMFLAGS = -f bin
+ASMFLAGS = -f bin -g
 
-SRC = $(wildcard src/*.asm)
-BOOTLOADER = boot.bin
+SRC = src/boot.asm
+BIN = boot.bin
 
-all: $(BOOTLOADER)
+all: $(BIN)
 
-$(BOOTLOADER): $(SRC)
-	$(NASM) $(ASMFLAGS) src/boot.asm -o ../build/$@
-	qemu-system-i386 -fda ../build/$(BOOTLOADER)
-
+$(BIN): $(SRC)
+	$(NASM) $(ASMFLAGS) $< -o ../build/$@
 
 clean:
-	rm -f ../build/$(BOOTLOADER)
+	rm -f $(BIN)
 
-run:
-	qemu-system-i386 -fda ../build/$(BOOTLOADER)
+.PHONY: all clean

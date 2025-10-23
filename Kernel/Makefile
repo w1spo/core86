@@ -1,10 +1,9 @@
 # Kompilator i linker
-CC = i686-elf-gcc
-LD = i686-elf-ld
+CC = gcc
+LD = ld
 
-# Flagi kompilatora
-CFLAGS = -ffreestanding -m32 -Wall -O2 -Iinclude
-LDFLAGS = -T kernel.ld
+CFLAGS = -m16 -ffreestanding -fno-pic -nostdlib -nostartfiles -fno-builtin -Iinclude
+LDFLAGS = -m elf_i386 -T kernel.ld -nostdlib
 
 # Pliki źródłowe i obiekty
 SRC = $(wildcard src/*.c)
