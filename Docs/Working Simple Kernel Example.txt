@@ -38,7 +38,7 @@ unsigned int input_pos = 0;
 // ---------------------------
 void update_cursor(void) {
     unsigned short pos = cursor_y * VGA_WIDTH + cursor_x;
-    
+
     outb(0x3D4, 0x0F);
     outb(0x3D5, (unsigned char)(pos & 0xFF));
     outb(0x3D4, 0x0E);
@@ -143,12 +143,12 @@ char scancode_to_ascii(unsigned char sc) {
     // Rozszerzone mapowanie dla QWERTY
     static const char layout[] = "??1234567890-=??qwertyuiop[]??asdfghjkl;'`?\\zxcvbnm,./??* ?";
     static const unsigned int layout_size = sizeof(layout) - 1; // -1 dla null terminator
-    
+
     if (sc < layout_size) {
         char c = layout[sc];
         if (c != '?') return c;
     }
-    
+
     // Specjalne klawisze
     switch(sc) {
         case 0x1C: return '\n'; // Enter
@@ -164,23 +164,23 @@ char scancode_to_ascii(unsigned char sc) {
 void parse_command(char* cmd) {
     char* args[MAX_ARGS];
     int arg_count = 0;
-    
+
     // Tokenizacja
     char* token = cmd;
     while (*token && arg_count < MAX_ARGS) {
         // Pomijaj spacje
         while (*token == ' ') token++;
         if (!*token) break;
-        
+
         args[arg_count++] = token;
-        
+
         // Znajdź koniec tokena
         while (*token && *token != ' ') token++;
         if (*token) *token++ = '\0';
     }
-    
+
     if (arg_count == 0) return;
-    
+
     // Wykonanie komend
     if (strcmp(args[0], "help") == 0) {
         print("Available commands:\n");
@@ -233,11 +233,11 @@ void handle_input(char c) {
     if (c == '\n') { // Enter
         putchar('\n');
         input_buffer[input_pos] = '\0';
-        
+
         if (input_pos > 0) {
             parse_command(input_buffer);
         }
-        
+
         // Reset buffer
         input_pos = 0;
         prompt();
