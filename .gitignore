@@ -3,3 +3,4 @@ Build/
 *.iso
 *.bin
 *.log
+.vscode/
