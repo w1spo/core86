@@ -10,9 +10,13 @@ i686-elf-as Mandatory/boot.s -o Build/Compile/boot.o
 # Compile Kernel
 i686-elf-gcc -c Kernel/src/kernel.c -o Build/Compile/kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -nostdlib -nostdinc
 
-# Link
-i686-elf-gcc -T Mandatory/linker.ld -o Build/kernel.bin -ffreestanding -O2 -nostdlib Build/Compile/boot.o Build/Compile/kernel.o
+#Compile VGA Driver
+i686-elf-gcc -ffreestanding -c Kernel/src/Include/VGA_DRV.c -o Build/Compile/vga.o
 
+#Compile OUTB Class
+i686-elf-gcc -ffreestanding -c Kernel/src/Include/OUTB.c -o Build/Compile/outb.o
+# Link
+i686-elf-gcc -T Mandatory/linker.ld -o Build/kernel.bin -ffreestanding -O2 -nostdlib Build/Compile/boot.o Build/Compile/kernel.o Build/Compile/vga.o Build/Compile/outb.o
 # Multiboot GRUB check
 if grub-file --is-x86-multiboot Build/kernel.bin; then
     echo "Multiboot confirmed"

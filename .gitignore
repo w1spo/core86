@@ -4,3 +4,4 @@ Build/
 *.bin
 *.log
 .vscode/
+Compiled_Archive/

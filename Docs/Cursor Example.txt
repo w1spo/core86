@@ -1,0 +1,19 @@
+void update_cursor(void) {
+    unsigned short pos = cursor_y * VGA_WIDTH + cursor_x;
+
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (unsigned char)(pos & 0xFF));
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (unsigned char)((pos >> 8) & 0xFF));
+}
+
+// Funkcje outb/inb dla 32-bit
+void outb(unsigned short port, unsigned char value) {
+    __asm__ volatile ("outb %0, %1" : : "a"(value), "Nd"(port));
+}
+
+unsigned char inb(unsigned short port) {
+    unsigned char ret;
+    __asm__ volatile ("inb %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
