@@ -3,7 +3,6 @@ set -e
 
 rm -rf Build
 mkdir -p Build/Compile
-
 # Compile Bootloader
 i686-elf-as Mandatory/boot.s -o Build/Compile/boot.o
 
@@ -15,8 +14,11 @@ i686-elf-gcc -ffreestanding -c Kernel/src/Include/VGA_DRV.c -o Build/Compile/vga
 
 #Compile OUTB Class
 i686-elf-gcc -ffreestanding -c Kernel/src/Include/OUTB.c -o Build/Compile/outb.o
+
+#Compile PS/2 Driver Class
+i686-elf-gcc -ffreestanding -c Kernel/src/Include/PS2KB.c -o Build/Compile/ps2drv.o
 # Link
-i686-elf-gcc -T Mandatory/linker.ld -o Build/kernel.bin -ffreestanding -O2 -nostdlib Build/Compile/boot.o Build/Compile/kernel.o Build/Compile/vga.o Build/Compile/outb.o
+i686-elf-gcc -T Mandatory/linker.ld -o Build/kernel.bin -ffreestanding -O2 -nostdlib Build/Compile/boot.o Build/Compile/kernel.o Build/Compile/vga.o Build/Compile/outb.o Build/Compile/ps2drv.o
 # Multiboot GRUB check
 if grub-file --is-x86-multiboot Build/kernel.bin; then
     echo "Multiboot confirmed"

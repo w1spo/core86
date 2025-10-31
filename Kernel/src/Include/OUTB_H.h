@@ -3,6 +3,6 @@
 #include "kstint.h"
 
 void outb(ukint_16 port, ukint_8 value);
-void inb(ukint_16 port);
+unsigned char inb(ukint_16 port);
 
 #endif
