@@ -104,10 +104,10 @@ int PS2_KB_HAS_INPUT(){
 void PS2_KB_HANDLER(void) {
     ukint_8 scancode = inb(PS2_DATA_PORT);
     ukint_8 keyPressed = !(scancode & 0x80);
-    ukint_8 keyCode = scancode & 0x7F;
+    
 
     if (keyPressed) {
-        switch (keyCode){
+        switch (scancode) {
             case 0x2A: //Left Shift
                 shiftPressed = 1;
                 break;
@@ -121,6 +121,7 @@ void PS2_KB_HANDLER(void) {
                 altPressed = 1;
                 break;
             default:
+                ukint_8 keyCode = scancode & 0x7F;
                 char c = shiftPressed ? keyboard_shift_map[keyCode] : keyboard_map[keyCode];
                 if (c) {
                     KB_PUTC(c);
@@ -128,15 +129,17 @@ void PS2_KB_HANDLER(void) {
                 break;
         }
     } else {
-        switch (keyCode) {
-            case 0xAA: //Left Shift release
-            case 0xB6: //Right Shift release
+        switch (scancode) {
+            case 0xAA: //Left Shift release (0x2A + 0x80)
                 shiftPressed = 0;
                 break;
-            case 0x9D: //Ctrl release
+            case 0xB6: //Right Shift release (0x36 + 0x80)
+                shiftPressed = 0;
+                break;
+            case 0x9D: //Ctrl release (0x1D + 0x80)
                 ctrlPressed = 0;
                 break;
-            case 0xB8: //Alt release
+            case 0xB8: //Alt release (0x38 + 0x80)
                 altPressed = 0;
                 break;
         }
