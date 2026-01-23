@@ -1,6 +1,7 @@
 #include "KSTINT.h"
 #include "UTILS.h"
 #include "VGA_H.h"
+
 void int_to_str(ukint32 num, char* buffer) {
     char temp[12];
     int i = 0;
