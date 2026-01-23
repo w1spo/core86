@@ -1,7 +1,7 @@
 #ifndef VMM_H
 #define VMM_H
 
-#include "kstint.h"
+#include "KSTINT.h"
 #include "PMM.h"
 
 // UŻYJ WYŻSZYCH ADRESÓW - POZA KERNEL ZONE!

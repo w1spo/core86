@@ -1,7 +1,7 @@
 #ifndef HEAP_H
 #define HEAP_H
 
-#include "kstint.h"
+#include "KSTINT.h"
 
 #define HEAP_START     0x200000  // 2MB
 #define HEAP_END       0x400000  // 4MB  

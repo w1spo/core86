@@ -7,7 +7,7 @@ mkdir -p Build/Compile
 i686-elf-as Mandatory/boot.s -o Build/Compile/boot.o
 
 # Compile Kernel
-i686-elf-gcc -c Kernel/src/kernel.c -o Build/Compile/kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -nostdlib -nostdinc
+i686-elf-gcc -c Kernel/src/KERNEL.c -o Build/Compile/kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -nostdlib -nostdinc
 
 #Compile VGA Driver
 i686-elf-gcc -ffreestanding -c Kernel/src/Include/VGA_DRV.c -o Build/Compile/vga.o

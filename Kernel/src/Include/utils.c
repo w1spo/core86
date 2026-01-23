@@ -1,4 +1,4 @@
-#include "kstint.h"
+#include "KSTINT.h"
 #include "UTILS.h"
 #include "VGA_H.h"
 void int_to_str(ukint32 num, char* buffer) {

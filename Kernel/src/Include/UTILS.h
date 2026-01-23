@@ -1,7 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "kstint.h"
+#include "KSTINT.h"
 
 void int_to_str(ukint32 num, char* buffer);
 char* hex_to_str(ukint32 value, char* buffer); 

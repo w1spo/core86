@@ -1,5 +1,5 @@
 #include "UTILS.h"
-#include "kstint.h"
+#include "KSTINT.h"
 #include "PMM.h"
 #include "VGA_H.h"
 

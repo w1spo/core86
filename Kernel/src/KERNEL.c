@@ -1,6 +1,6 @@
 #include "Include/VGA_H.h"
 #include "Include/PS2KB.h"
-#include "Include/kstint.h"
+#include "Include/KSTINT.h"
 #include "Include/OUTB_H.h"
 #include "Include/PMM.h"
 #include "Include/UTILS.h"

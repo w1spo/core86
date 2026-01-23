@@ -10,7 +10,7 @@
 #include "PS2KB.h"
 #include "OUTB_H.h"
 #include "VGA_H.h"
-#include "kstint.h"
+#include "KSTINT.h"
 
 // Keyboard maps
 static char keyboard_map[128] = {

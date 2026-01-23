@@ -1,7 +1,7 @@
 #ifndef PMM_H
 #define PMM_H
 
-#include "kstint.h"
+#include "KSTINT.h"
 
 #define PAGE_SIZE 4096
 #define PMM_BITMAP_SIZE 32768

@@ -1,5 +1,5 @@
 #include "VGA_H.h"
-#include "kstint.h"
+#include "KSTINT.h"
 #include "OUTB_H.h"
 // Usuń #include <string.h>
 

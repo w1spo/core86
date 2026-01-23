@@ -1,7 +1,7 @@
 #ifndef VGA_DRV
 #define VGA_DRV
 
-#include "kstint.h"
+#include "KSTINT.h"
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define VGA_MEM 0xB8000

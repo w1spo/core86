@@ -1,7 +1,7 @@
 #ifndef PS2_KB
 #define PS2_KB
 
-#include "kstint.h"
+#include "KSTINT.h"
 
 #define OUTPUT_BUFFER_FULL 1
 #define INPUT_BUFFER_FULL (1<<1)
