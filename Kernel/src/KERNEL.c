@@ -7,6 +7,9 @@
 #include "Include/VMM.h"
 #include "Include/HEAP.h"
 #include "Include/DEBUG.h"
+#include "PIT.h"
+#include "PIC.h"
+#include "IDT.h"
 
 ukint32 detect_memory_simple(void) {
     return 512 * 1024 * 1024;  // 512MB
@@ -14,6 +17,15 @@ ukint32 detect_memory_simple(void) {
 
 
 void kernel_main(void) {
+
+    idt_init();
+    pic_init();
+    pic_unmask_irq(0);
+    pic_unmask_irq(1);
+    pit_init();
+    asm volatile("sti");
+
+
     vga_init();
     vga_print("Welcome to Core86\n");
     
@@ -80,15 +92,6 @@ void kernel_main(void) {
     
     // Main loop
     while (1) {
-        if (inb(PS2_STATUS_PORT) & OUTPUT_BUFFER_FULL) {
-            PS2_KB_HANDLER();
-        }
-        
-        if (PS2_KB_HAS_INPUT()) {
-            char c = PS2_KB_GETC();
-            vga_char(c);
-        }
-        
-        for(int i = 0; i < 1000; i++) asm volatile("nop");
+        asm.volatile("hlt");
     }
 }

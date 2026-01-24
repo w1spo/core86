@@ -210,3 +210,9 @@ void POLLING_HANDLER(void) {
     }
     
 }
+
+void ps2_irq_handler() {
+    if (inb(PS2_STATUS_PORT) & OUTPUT_BUFFER_FULL) {
+        PS2_KB_HANDLER();
+    }
+}
