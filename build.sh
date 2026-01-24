@@ -27,9 +27,9 @@ i686-elf-gcc -ffreestanding -c Kernel/src/Include/UTILS.c -o Build/Compile/UTILS
 i686-elf-gcc -ffreestanding -c Kernel/src/Include/PMM.c -o Build/Compile/pmm.o
 i686-elf-gcc -ffreestanding -c Kernel/src/Include/VMM.c -o Build/Compile/vmm.o
 i686-elf-gcc -ffreestanding -c Kernel/src/Include/HEAP.c -o Build/Compile/heap.o
-
+i686-elf-gcc -ffreestanding -c Kernel/src/Include/DEBUG.c -o Build/Compile/debug.o
 # Link
-i686-elf-gcc -T Mandatory/linker.ld -o Build/kernel.bin -ffreestanding -O2 -nostdlib Build/Compile/boot.o Build/Compile/kernel.o Build/Compile/vga.o Build/Compile/outb.o Build/Compile/ps2drv.o Build/Compile/pmm.o Build/Compile/UTILS.o Build/Compile/heap.o Build/Compile/vmm.o
+i686-elf-gcc -T Mandatory/linker.ld -o Build/kernel.bin -ffreestanding -O2 -nostdlib Build/Compile/boot.o Build/Compile/kernel.o Build/Compile/vga.o Build/Compile/outb.o Build/Compile/ps2drv.o Build/Compile/pmm.o Build/Compile/UTILS.o Build/Compile/heap.o Build/Compile/vmm.o Build/Compile/debug.o
 # Multiboot GRUB check
 if grub-file --is-x86-multiboot Build/kernel.bin; then
     echo "Multiboot confirmed"

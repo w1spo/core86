@@ -52,7 +52,9 @@ void* KMALLOC(ukint32 size) {
     }
     
     // Can we split the block?
-    if(block->size >= size + BLOCK_SIZE + MIN_BLOCK_SIZE) {
+    ukint32 remaining = block->size - size - BLOCK_SIZE;
+
+    if(remaining >= MIN_BLOCK_SIZE + 16) {
         // Create new free block after this one
         Block* new_block = (Block*)((ukint_8*)block + BLOCK_SIZE + size);
         new_block->magic = BLOCK_MAGIC;
@@ -95,67 +97,64 @@ void* KMALLOC(ukint32 size) {
 
 void KFREE(void* ptr) {
     if(!ptr) return;
-    
-    // Get block pointer from data pointer
+
     Block* block = (Block*)((ukint_8*)ptr - BLOCK_SIZE);
-    
-    // Validate block
+
     if(block->magic != BLOCK_MAGIC) {
         vga_print("[HEAP] ERROR: Invalid pointer in KFREE!\n");
         return;
     }
-    
+
     if(!block->used) {
         vga_print("[HEAP] ERROR: Double free detected!\n");
         return;
     }
-    
-    // Mark as free
+
     block->used = 0;
-    
-    // Remove from used list
-    if(block->prev) {
-        block->prev->next = block->next;
-    } else {
-        used_list = block->next;
-    }
-    if(block->next) {
-        block->next->prev = block->prev;
-    }
-    
-    // Add to free list at beginning (simple)
+
+    if(block->prev) block->prev->next = block->next;
+    else used_list = block->next;
+
+    if(block->next) block->next->prev = block->prev;
+
     block->prev = 0;
-    block->next = free_list;
-    if(free_list) {
-        free_list->prev = block;
-    }
-    free_list = block;
-    
-    // Try to merge with next block if free and contiguous
-    if(block->next && !block->next->used && 
+    block->next = 0;
+
+    insert_free_block(block);
+
+    if(block->next &&
        (ukint_8*)block + BLOCK_SIZE + block->size == (ukint_8*)block->next) {
-        // Merge with next
         block->size += BLOCK_SIZE + block->next->size;
         block->next = block->next->next;
-        if(block->next) {
-            block->next->prev = block;
-        }
+        if(block->next) block->next->prev = block;
     }
-    
-    // Try to merge with previous block if free and contiguous
-    if(block->prev && !block->prev->used &&
+
+    if(block->prev &&
        (ukint_8*)block->prev + BLOCK_SIZE + block->prev->size == (ukint_8*)block) {
-        // Merge with previous
         block->prev->size += BLOCK_SIZE + block->size;
         block->prev->next = block->next;
-        if(block->next) {
-            block->next->prev = block->prev;
-        }
-        
-        // Update block pointer for consistency
-        block = block->prev;
+        if(block->next) block->next->prev = block->prev;
     }
 }
+
+
+void insert_free_block(Block* block) {
+    Block* cur = free_list;
+    Block* prev = 0;
+
+    while(cur && cur < block) {
+        prev = cur;
+        cur = cur->next;
+    }
+
+    block->prev = prev;
+    block->next = cur;
+
+    if(cur) cur->prev = block;
+    if(prev) prev->next = block;
+    else free_list = block;
+}
+
 
 void HEAP_PRINT_STATUS(void) {
     ukint32 used_bytes = 0;

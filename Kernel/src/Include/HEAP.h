@@ -25,4 +25,5 @@ void KFREE(void* ptr);
 void HEAP_PRINT_STATUS(void);
 void HEAP_DEBUG_DUMP(void);  // Debug function
 void HEAP_PRINT_DETAILED(void);
+void insert_free_block(Block* block);
 #endif
