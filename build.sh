@@ -36,9 +36,9 @@ i686-elf-gcc -ffreestanding -c Kernel/src/Include/PIC.c -o Build/Compile/pic.o
 i686-elf-gcc -ffreestanding -c Kernel/src/Include/PIT.c -o Build/Compile/pit.o
 
 #ASM
-nasm -f elf32 pit_irq_handler.asm -o pit_handler.o
-nasm -f elf32 ps2_irq_handler.asm -o ps2_asm_handler.o
-nasm -f elf32 idt_load.asm -o idt_load.o
+nasm -f elf32 Kernel/src/Include/pit_irq_handler.asm -o pit_handler.o
+nasm -f elf32 Kernel/src/Include/ps2_irq_handler.asm -o ps2_asm_handler.o
+nasm -f elf32 Kernel/src/Include/idt_load.asm -o idt_load.o
 
 # Link
 i686-elf-gcc -T Mandatory/linker.ld -o Build/kernel.bin -ffreestanding -O2 -nostdlib Build/Compile/boot.o Build/Compile/kernel.o Build/Compile/vga.o Build/Compile/outb.o Build/Compile/ps2drv.o Build/Compile/pmm.o Build/Compile/UTILS.o Build/Compile/heap.o Build/Compile/vmm.o Build/Compile/debug.o Build/Compile/idt_load.o Build/Compile/idt.o Build/Compile/pic.o Build/Compile/ps2_asm_handler.o Build/Compile/pit_handler.o Build/Compile/pit.o

@@ -1,4 +1,5 @@
 global pit_irq_handler_asm
+extern pit_irq_handler
 
 pit_irq_handler_asm:
     pusha                 ; zapisujemy wszystkie rejestry

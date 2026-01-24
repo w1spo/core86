@@ -7,9 +7,10 @@
 #include "Include/VMM.h"
 #include "Include/HEAP.h"
 #include "Include/DEBUG.h"
-#include "PIT.h"
-#include "PIC.h"
-#include "IDT.h"
+
+#include "Include/PIT.h"
+#include "Include/PIC.h"
+#include "Include/IDT.h"
 
 ukint32 detect_memory_simple(void) {
     return 512 * 1024 * 1024;  // 512MB
@@ -23,8 +24,7 @@ void kernel_main(void) {
     pic_unmask_irq(0);
     pic_unmask_irq(1);
     pit_init();
-    asm volatile("sti");
-
+    __asm__ volatile("sti");
 
     vga_init();
     vga_print("Welcome to Core86\n");
@@ -92,6 +92,6 @@ void kernel_main(void) {
     
     // Main loop
     while (1) {
-        asm.volatile("hlt");
+        __asm__ volatile("hlt");
     }
 }

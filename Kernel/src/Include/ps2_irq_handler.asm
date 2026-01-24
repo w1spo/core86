@@ -1,4 +1,5 @@
 global ps2_irq_handler
+extern ps2_kb_handler
 
 ps2_irq_handler:
     pusha

@@ -14,10 +14,10 @@ typedef struct {
 
 typedef struct {
     ukint_16 limit;   // rozmiar IDT - 1
-    ukint_32 base;    // adres tablicy IDT
+    ukint32 base;    // adres tablicy IDT
 } __attribute__((packed)) idt_ptr_t;
 
-void idt_set_gate(int n, ukint_32 handler);
+void idt_set_gate(int n, ukint32 handler);
 void idt_init(void);
 void dummy_handler(void);
 

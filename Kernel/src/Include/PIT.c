@@ -10,9 +10,9 @@ void pit_init() {
 }
 
 void pit_irq_handler(){
-    pit_ticks++
+    pit_ticks++;
     scheduler_tick();
-    pit_send_eoi(0);
+    pit_send_eoi();
 }
 
 void scheduler_tick() {
@@ -27,7 +27,7 @@ void pit_send_eoi()
 void sleep_ms(ukint64 ms) {
     ukint64 target = pit_ticks + ms;
     while(pit_ticks < target) {
-        asm.volatile("hlt");
+        __asm__ volatile("hlt");
     }
 }
 
