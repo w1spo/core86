@@ -9,20 +9,10 @@ void pit_init() {
     outb(0x40, (divisor >> 8) & 0xFF);
 }
 
-void pit_irq_handler(){
+void PIT_IRQ_HANDLER(){
     pit_ticks++;
-    scheduler_tick();
-    pit_send_eoi();
 }
 
-void scheduler_tick() {
-
-}
-
-void pit_send_eoi()
-{
-
-}
 
 void sleep_ms(ukint64 ms) {
     ukint64 target = pit_ticks + ms;

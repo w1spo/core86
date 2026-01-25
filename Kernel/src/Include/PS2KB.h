@@ -17,6 +17,6 @@ int PS2_KB_HAS_INPUT(void);
 char* PS2_KB_READ_LN(void);
 void PS2_KB_HANDLER();
 void POLLING_HANDLER(void);
-void ps2_irq_handler(void);
+void PS2_IRQ_HANDLER(void);
 
 #endif

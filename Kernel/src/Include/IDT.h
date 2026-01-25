@@ -2,6 +2,15 @@
 #define IDT_H
 
 #include "KSTINT.h"
+#include "VGA_H.h"
+#include "UTILS.h"
+struct regs {
+    ukint32 ds, es, fs, gs;
+    ukint32 edi, esi, ebp, esp, ebx, edx, ecx, eax;
+    ukint32 int_no, err_code;
+    ukint32 eip, cs, eflags, useresp, ss;
+};
+
 
 typedef struct {
     ukint_16 offset_low;
@@ -18,7 +27,7 @@ typedef struct {
 } __attribute__((packed)) idt_ptr_t;
 
 void idt_set_gate(int n, ukint32 handler);
-void idt_init(void);
+void IDT_INIT(void);
 void dummy_handler(void);
 
 

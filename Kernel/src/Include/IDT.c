@@ -5,7 +5,7 @@ idt_ptr_t idt_ptr;
 
 extern void idt_load(ukint32);          // ASM do wczytania IDT
 extern void pit_irq_handler_asm(void);   // ASM wrapper dla PIT
-extern void ps2_irq_handler(void);
+extern void ps2_irq_asm_handler(void);
 
 void idt_set_gate(int n, ukint32 handler) {
     idt[n].offset_low  = handler & 0xFFFF;
@@ -19,7 +19,7 @@ void dummy_handler() {
     asm volatile("iret");
 }
 
-void idt_init() {
+void IDT_INIT() {
     idt_ptr.limit = sizeof(idt) - 1;
     idt_ptr.base  = (ukint32)&idt;
 
@@ -30,9 +30,17 @@ void idt_init() {
 
     // PIT IRQ0 → INT 32
     idt_set_gate(32, (ukint32)pit_irq_handler_asm);
-    idt_set_gate(33, (ukint32)ps2_irq_handler);
+    idt_set_gate(33, (ukint32)ps2_irq_asm_handler);
 
     // wczytujemy IDT do CPU
     idt_load((ukint32)&idt_ptr);
 }
 
+void fault_handler(struct regs *r) {
+    vga_print("CPU FAULT!\n");
+    vga_print("EIP: "); print_hex(r->eip); vga_print("\n");
+    vga_print("CS: "); print_hex(r->cs); vga_print("\n");
+    vga_print("EFLAGS: "); print_hex(r->eflags); vga_print("\n");
+
+    while(1) { asm volatile("hlt"); }  // <-- CPU stoi w miejscu
+}

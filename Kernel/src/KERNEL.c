@@ -19,10 +19,10 @@ ukint32 detect_memory_simple(void) {
 
 void kernel_main(void) {
 
-    idt_init();
+    IDT_INIT();
     pic_init();
+
     pic_unmask_irq(0);
-    pic_unmask_irq(1);
     pit_init();
     __asm__ volatile("sti");
 
