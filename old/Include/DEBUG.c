@@ -172,6 +172,63 @@ void debug_print(const char* str) {
     vga_print(str);
 }
 
+// Tymczasowy handler do testów
+void keyboard_test_handler(void) {
+    vga_print("[KB] IRQ1 Received!\n");
+    
+    // Odczytaj status PORTU 0x64 (status register)
+    ukint_8 status = inb(0x64);
+    
+    char buf[12];
+    vga_print("[KB] Status (0x64): 0x");
+    vga_print(hex_to_str(status, buf));
+    vga_print(" (binary: ");
+    
+    // Wypisz binarne
+    for(int i = 7; i >= 0; i--) {
+        vga_char((status & (1 << i)) ? '1' : '0');
+        if(i == 4) vga_char(' ');
+    }
+    vga_print(")\n");
+    
+    // Sprawdź poszczególne bity:
+    vga_print("[KB] Bit 0 (Output Buffer Full): ");
+    vga_char((status & 1) ? '1' : '0');
+    vga_print("\n");
+    
+    vga_print("[KB] Bit 1 (Input Buffer Full): ");
+    vga_char((status & 2) ? '1' : '0');
+    vga_print("\n");
+    
+    vga_print("[KB] Bit 4 (Keyboard Inhibited): ");
+    vga_char((status & 0x10) ? '1' : '0');
+    vga_print("\n");
+    
+    vga_print("[KB] Bit 5 (Transmit Timeout): ");
+    vga_char((status & 0x20) ? '1' : '0');
+    vga_print("\n");
+    
+    vga_print("[KB] Bit 6 (Receive Timeout): ");
+    vga_char((status & 0x40) ? '1' : '0');
+    vga_print("\n");
+    
+    // Jeśli Output Buffer Full, odczytaj dane
+    if(status & 1) {
+        ukint_8 data = inb(0x60);
+        vga_print("[KB] Data (0x60): 0x");
+        vga_print(hex_to_str(data, buf));
+        vga_print("\n");
+        
+        // Przetwórz scancode
+        PS2_KB_HANDLER();
+    } else {
+        vga_print("[KB] No data in buffer\n");
+    }
+    
+    // EOI
+    outb(0x20, 0x20);
+}
+
 void check_page_tables(void) {
     vga_print("\n[DEBUG] Checking page tables...\n");
     

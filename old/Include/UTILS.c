@@ -2,7 +2,7 @@
 #include "UTILS.h"
 #include "VGA_H.h"
 
-void int_to_str(ukint32 num, char* buffer) {
+void int_to_str(uint32_t num, char* buffer) {
     char temp[12];
     int i = 0;
     
@@ -25,19 +25,19 @@ void int_to_str(ukint32 num, char* buffer) {
     buffer[i] = '\0';
 }
 
-void print_hex(ukint32 num) {
+void print_hex(uint32_t num) {
     char hex_chars[] = "0123456789ABCDEF";
     
     vga_print("0x");
     
     // Print each hex digit
     for(int i = 28; i >= 0; i -= 4) {
-        ukint32 digit = (num >> i) & 0xF;
+        uint32_t digit = (num >> i) & 0xF;
         vga_char(hex_chars[digit]);
     }
 }
 
-char* hex_to_str(ukint32 value, char* buffer) {
+char* hex_to_str(uint32_t value, char* buffer) {
     const char* hex_digits = "0123456789ABCDEF";
     
     buffer[0] = '0';
@@ -52,21 +52,21 @@ char* hex_to_str(ukint32 value, char* buffer) {
     return buffer;
 }
 
-void* memcpy(void* dest, const void* src, ukint32 n) {
+void* memcpy(void* dest, const void* src, uint32_t n) {
     char* d = (char*)dest;
     const char* s = (const char*)src;
     
-    for(ukint32 i = 0; i < n; i++) {
+    for(uint32_t i = 0; i < n; i++) {
         d[i] = s[i];
     }
     
     return dest;
 }
 
-void* memset(void* dest, int value, ukint32 n) {
+void* memset(void* dest, int value, uint32_t n) {
     char* d = (char*)dest;
     
-    for(ukint32 i = 0; i < n; i++) {
+    for(uint32_t i = 0; i < n; i++) {
         d[i] = (char)value;
     }
     

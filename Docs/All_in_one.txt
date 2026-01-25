@@ -1,0 +1,1952 @@
+// Kernel/src/Include/DEBUG.c
+#include "DEBUG.h"
+
+void test_heap(void); 
+void test_address_space(void);
+void test_real_memory(void);
+void test_memory_content(void);
+void debug_print(const char* str);
+void check_page_tables(void);
+void ultimate_test(void);
+void verify_heap_clean(void);
+
+
+void verify_heap_clean(void) {
+    vga_print("\n[HEAP-VERIFY] Checking if heap is clean...\n");
+    
+    HEAP_PRINT_STATUS();
+    
+    void* test = KMALLOC(16);
+    if(test) {
+        vga_print("[HEAP-VERIFY] ✓ Can allocate on clean heap\n");
+        KFREE(test);
+    } else {
+        vga_print("[HEAP-VERIFY] ✗ ERROR: Cannot allocate on clean heap!\n");
+    }
+}
+
+void test_heap(void) {
+    vga_print("\n[TEST] Testing heap allocation and free...\n");
+    
+    // Allocate 3 blocks
+    void* ptr1 = KMALLOC(100);
+    void* ptr2 = KMALLOC(200);
+    void* ptr3 = KMALLOC(50);
+    
+    HEAP_PRINT_STATUS();
+    HEAP_DEBUG_DUMP();
+    
+    // Free middle block
+    vga_print("\n[TEST] Freeing middle block...\n");
+    KFREE(ptr2);
+    
+    HEAP_PRINT_STATUS();
+    HEAP_DEBUG_DUMP();
+    
+    // Allocate again
+    vga_print("\n[TEST] Allocating 150 bytes...\n");
+    void* ptr4 = KMALLOC(150);
+    
+    HEAP_PRINT_STATUS();
+    HEAP_DEBUG_DUMP();
+    
+    // Cleanup
+    if(ptr1) KFREE(ptr1);
+    if(ptr3) KFREE(ptr3);
+    if(ptr4) KFREE(ptr4);
+    
+    vga_print("[TEST] All blocks freed\n");
+}
+
+void test_real_memory(void) {
+    vga_print("\n[TEST] Testing REAL memory access...\n");
+    
+    // Allocate memory
+    int* numbers = (int*)KMALLOC(100 * sizeof(int));
+    
+    if(!numbers) {
+        vga_print("[TEST] FAIL: Allocation failed!\n");
+        return;
+    }
+    
+    // Write data
+    vga_print("[TEST] Writing data to allocated memory...\n");
+    for(int i = 0; i < 100; i++) {
+        numbers[i] = i * i;  // Write squares
+    }
+    
+    // Read and verify
+    vga_print("[TEST] Verifying data...\n");
+    int errors = 0;
+    for(int i = 0; i < 100; i++) {
+        if(numbers[i] != i * i) {
+            errors++;
+        }
+    }
+    
+    if(errors == 0) {
+        vga_print("[TEST] PASS: Memory read/write works!\n");
+    } else {
+        char buf[12];
+        vga_print("[TEST] FAIL: ");
+        int_to_str(errors, buf);
+        vga_print(buf);
+        vga_print(" errors found!\n");
+    }
+    
+    KFREE(numbers);
+}
+
+void test_address_space(void) {
+    vga_print("\n[TEST] Checking address space...\n");
+    
+    void* ptr1 = KMALLOC(100);
+    void* ptr2 = KMALLOC(100);
+    
+    if(ptr1 && ptr2) {
+        char buf[12];
+        
+        vga_print("[TEST] ptr1 = 0x");
+        vga_print(hex_to_str((ukint32)ptr1, buf));
+        vga_print("\n[TEST] ptr2 = 0x");
+        vga_print(hex_to_str((ukint32)ptr2, buf));
+        vga_print("\n");
+        
+        // Check distance between pointers
+        ukint32 distance = (ukint32)ptr2 - (ukint32)ptr1;
+        vga_print("[TEST] Distance: ");
+        int_to_str(distance, buf);
+        vga_print(buf);
+        vga_print(" bytes\n");
+        
+        // Should be > 100 (size + header)
+        if(distance > 100) {
+            vga_print("[TEST] PASS: Proper spacing between allocations\n");
+        }
+    }
+    
+    KFREE(ptr1);
+    KFREE(ptr2);
+}
+
+void test_memory_content(void) {
+    vga_print("\n[TEST] Checking memory initialization...\n");
+    
+    // Allocate and check content
+    char* buffer = (char*)KMALLOC(256);
+    
+    if(buffer) {
+        // Check if memory contains garbage or is zeroed
+        int non_zero = 0;
+        for(int i = 0; i < 256; i++) {
+            if(buffer[i] != 0) {
+                non_zero++;
+            }
+        }
+        
+        char buf[12];
+        vga_print("[TEST] Non-zero bytes in fresh allocation: ");
+        int_to_str(non_zero, buf);
+        vga_print(buf);
+        vga_print("\n");
+        
+        // Write data
+        for(int i = 0; i < 256; i++) {
+            buffer[i] = i % 256;
+        }
+        
+        KFREE(buffer);
+        
+        // Reallocate - check if memory contains old data
+        buffer = (char*)KMALLOC(256);
+        if(buffer) {
+            vga_print("[TEST] Memory reuse test\n");
+            KFREE(buffer);
+        }
+    }
+}
+
+// Simple debug function via serial port
+void debug_print(const char* str) {
+    // Initialize serial port (optional)
+    // For now just print to screen
+    vga_print(str);
+}
+
+void check_page_tables(void) {
+    vga_print("\n[DEBUG] Checking page tables...\n");
+    
+    // CR3 contains page directory address
+    ukint32 cr3;
+    __asm__ volatile ("mov %%cr3, %0" : "=r"(cr3));
+    
+    char buf[12];
+    vga_print("[DEBUG] CR3 (Page Directory): 0x");
+    vga_print(hex_to_str(cr3, buf));
+    vga_print("\n");
+    
+    // Check mapping for heap address
+    ukint32 heap_virt = 0x00200000;  // Your heap
+    vga_print("[DEBUG] Heap virtual address: 0x");
+    vga_print(hex_to_str(heap_virt, buf));
+    vga_print("\n");
+}
+
+void ultimate_test(void) {
+    vga_print("\n[ULTIMATE] Testing heap boundaries...\n");
+    
+    // Array to remember ALL allocations
+    #define MAX_ALLOCS 512
+    void* allocations[MAX_ALLOCS] = {0};
+    int alloc_count = 0;
+    ukint32 total_allocated = 0;
+    void* last_alloc = 0;
+
+    // --- TEST 1: Try to allocate too large block ---
+    vga_print("[ULTIMATE] 1. Testing huge allocation...\n");
+    void* huge = KMALLOC(HEAP_SIZE * 2);  // 2x larger than heap
+    
+    if(!huge) {
+        vga_print("[ULTIMATE]   ✓ CORRECT: Huge allocation rejected\n");
+    } else {
+        vga_print("[ULTIMATE]   ✗ ERROR: Huge allocation should fail!\n");
+        KFREE(huge);
+    }
+    
+    // --- TEST 2: Fill entire heap ---
+    vga_print("[ULTIMATE] 2. Filling entire heap...\n");
+    
+    while(1) {
+        void* ptr = KMALLOC(4096);  // 4KB
+        
+        if(!ptr) {
+            // Heap full
+            char buf[12];
+            vga_print("[ULTIMATE]   Heap full after ");
+            int_to_str(total_allocated, buf);
+            vga_print(buf);
+            vga_print(" bytes (");
+            int_to_str(alloc_count, buf);
+            vga_print(buf);
+            vga_print(" allocations)\n");
+            break;
+        }
+        
+        // Save pointer to array (if space)
+        if(alloc_count < MAX_ALLOCS) {
+            allocations[alloc_count] = ptr;
+            alloc_count++;
+        }
+        
+        // Write marker to check if memory works
+        *(ukint32*)ptr = 0xDEADBEEF;
+        
+        total_allocated += 4096;
+        last_alloc = ptr;
+    }
+    
+    // Show heap status after filling
+    HEAP_PRINT_STATUS();
+    
+    // --- TEST 3: Try to allocate when heap full ---
+    vga_print("[ULTIMATE] 3. Testing allocation when heap full...\n");
+    void* should_fail = KMALLOC(100);
+    
+    if(!should_fail) {
+        vga_print("[ULTIMATE]   ✓ CORRECT: Allocation fails when heap full\n");
+    } else {
+        vga_print("[ULTIMATE]   ✗ ERROR: Should not allocate when heap full!\n");
+        if(alloc_count < MAX_ALLOCS) {
+            allocations[alloc_count] = should_fail;
+            alloc_count++;
+        }
+    }
+    
+    // --- TEST 4: Free ONE and reallocate ---
+    vga_print("[ULTIMATE] 4. Freeing one block and reallocating...\n");
+    
+    if(last_alloc) {
+        // Check if marker is intact
+        if(*(ukint32*)last_alloc == 0xDEADBEEF) {
+            vga_print("[ULTIMATE]   ✓ Memory content preserved\n");
+        }
+        
+        KFREE(last_alloc);
+        
+        // Remove from array (for cleanliness)
+        for(int i = 0; i < alloc_count; i++) {
+            if(allocations[i] == last_alloc) {
+                allocations[i] = 0;
+                break;
+            }
+        }
+        
+        // Try to allocate smaller block
+        void* should_work = KMALLOC(100);
+        if(should_work) {
+            vga_print("[ULTIMATE]   ✓ Can allocate after free\n");
+            
+            // Save to array
+            if(alloc_count < MAX_ALLOCS) {
+                allocations[alloc_count] = should_work;
+                alloc_count++;
+            }
+            
+            // Check if memory is usable
+            *(ukint32*)should_work = 0xCAFEBABE;
+            if(*(ukint32*)should_work == 0xCAFEBABE) {
+                vga_print("[ULTIMATE]   ✓ Freed memory is usable\n");
+            }
+        } else {
+            vga_print("[ULTIMATE]   ✗ ERROR: Cannot allocate after free!\n");
+        }
+    }
+    
+    // --- TEST 5: Fragmentation ---
+    vga_print("[ULTIMATE] 5. Testing fragmentation...\n");
+    
+    // Free every other block
+    int freed_count = 0;
+    for(int i = 0; i < alloc_count; i += 2) {
+        if(allocations[i]) {
+            KFREE(allocations[i]);
+            allocations[i] = 0;
+            freed_count++;
+        }
+    }
+    
+    char buf[12];
+    vga_print("[ULTIMATE]   Freed ");
+    int_to_str(freed_count, buf);
+    vga_print(buf);
+    vga_print(" blocks (every other)\n");
+    
+    HEAP_PRINT_STATUS();
+    
+    // Try to allocate medium block - should use merged fragments
+    vga_print("[ULTIMATE]   Trying to allocate medium block (2048 bytes)...\n");
+    void* medium = KMALLOC(2048);
+    if(medium) {
+        vga_print("[ULTIMATE]   ✓ Can allocate medium block after fragmentation\n");
+        
+        if(alloc_count < MAX_ALLOCS) {
+            allocations[alloc_count] = medium;
+            alloc_count++;
+        }
+    } else {
+        vga_print("[ULTIMATE]   ✗ ERROR: Cannot allocate medium block!\n");
+    }
+    
+    // --- MOST IMPORTANT: Clean up EVERYTHING ---
+    vga_print("[ULTIMATE] 6. Cleaning up ALL allocations...\n");
+    
+    int cleaned = 0;
+    for(int i = 0; i < alloc_count; i++) {
+        if(allocations[i]) {
+            KFREE(allocations[i]);
+            allocations[i] = 0;
+            cleaned++;
+        }
+    }
+    
+    vga_print("[ULTIMATE]   Freed ");
+    int_to_str(cleaned, buf);
+    vga_print(buf);
+    vga_print(" blocks total\n");
+    
+    // --- TEST 7: Check if heap returned to initial state ---
+    vga_print("[ULTIMATE] 7. Verifying heap is clean...\n");
+    HEAP_PRINT_STATUS();
+    
+    // Final test: allocation on clean heap
+    vga_print("[ULTIMATE]   Final allocation test on clean heap...\n");
+    void* final_test = KMALLOC(128);
+    
+    if(final_test) {
+        // Check if address is at START of heap
+        ukint32 addr = (ukint32)final_test;
+        if(addr >= HEAP_START && addr < HEAP_START + 1000) {
+            vga_print("[ULTIMATE]   ✓ Allocation at START of heap: 0x");
+            vga_print(hex_to_str(addr, buf));
+            vga_print("\n");
+        } else {
+            vga_print("[ULTIMATE]   ⚠ Warning: Allocation not at heap start\n");
+        }
+        
+        KFREE(final_test);
+        vga_print("[ULTIMATE]   ✓ Cleanup successful\n");
+    } else {
+        vga_print("[ULTIMATE]   ✗ ERROR: Cannot allocate on clean heap!\n");
+    }
+    
+    vga_print("[ULTIMATE] ✓ All tests completed!\n");
+}
+
+// Kernel/src/Include/DEBUG.h
+#ifndef DEBUG_H
+#define DEBUG_H
+
+#include "VGA_H.h"
+#include "PS2KB.h"
+#include "KSTINT.h"
+#include "OUTB_H.h"
+#include "PMM.h"
+#include "UTILS.h"
+#include "VMM.h"
+#include "HEAP.h"
+
+void test_heap(void); 
+void test_address_space(void);
+void test_real_memory(void);
+void test_memory_content(void);
+void debug_print(const char* str);
+void check_page_tables(void);
+void ultimate_test(void);
+void verify_heap_clean(void);
+
+#endif
+
+// Kernel/src/Include/HEAP.c
+#include "HEAP.h"
+#include "VGA_H.h"
+#include "UTILS.h"
+
+static Block* free_list = 0;
+static Block* used_list = 0;
+
+void HEAP_INIT(void) {
+    // Initialize first free block covering entire heap
+    Block* first_block = (Block*)HEAP_START;
+    first_block->magic = BLOCK_MAGIC;
+    first_block->size = HEAP_SIZE - BLOCK_SIZE;
+    first_block->used = 0;
+    first_block->next = 0;
+    first_block->prev = 0;
+    
+    free_list = first_block;
+    used_list = 0;
+    
+    vga_print("[HEAP] Initialized with free list allocator\n");
+}
+
+// Find first fit free block
+static Block* find_free_block(ukint32 size) {
+    Block* current = free_list;
+    while(current) {
+        if(current->size >= size && !current->used) {
+            return current;  // First fit
+        }
+        current = current->next;
+    }
+    
+    return 0;
+}
+
+void* KMALLOC(ukint32 size) {
+    if(size == 0) return 0;
+    
+    // Align size to 16 bytes
+    size = (size + 15) & ~15;
+    
+    // Find free block
+    Block* block = find_free_block(size);
+    
+    if(!block) {
+        vga_print("[HEAP] OUT OF MEMORY! Requested: ");
+        char buffer[12];
+        int_to_str(size, buffer);
+        vga_print(buffer);
+        vga_print(" bytes\n");
+        return 0;
+    }
+    
+    // Can we split the block?
+    ukint32 remaining = block->size - size - BLOCK_SIZE;
+
+    if(remaining >= MIN_BLOCK_SIZE + 16) {
+        // Create new free block after this one
+        Block* new_block = (Block*)((ukint_8*)block + BLOCK_SIZE + size);
+        new_block->magic = BLOCK_MAGIC;
+        new_block->size = block->size - size - BLOCK_SIZE;
+        new_block->used = 0;
+        new_block->next = block->next;
+        new_block->prev = block;
+        
+        if(block->next) {
+            block->next->prev = new_block;
+        }
+        block->next = new_block;
+        block->size = size;
+    }
+    
+    // Mark as used
+    block->used = 1;
+    
+    // Remove from free list
+    if(block->prev) {
+        block->prev->next = block->next;
+    } else {
+        free_list = block->next;
+    }
+    if(block->next) {
+        block->next->prev = block->prev;
+    }
+    
+    // Add to used list
+    block->prev = 0;
+    block->next = used_list;
+    if(used_list) {
+        used_list->prev = block;
+    }
+    used_list = block;
+    
+    // Return pointer to data area (after block header)
+    return (void*)((ukint_8*)block + BLOCK_SIZE);
+}
+
+void KFREE(void* ptr) {
+    if(!ptr) return;
+
+    Block* block = (Block*)((ukint_8*)ptr - BLOCK_SIZE);
+
+    if(block->magic != BLOCK_MAGIC) {
+        vga_print("[HEAP] ERROR: Invalid pointer in KFREE!\n");
+        return;
+    }
+
+    if(!block->used) {
+        vga_print("[HEAP] ERROR: Double free detected!\n");
+        return;
+    }
+
+    block->used = 0;
+
+    if(block->prev) block->prev->next = block->next;
+    else used_list = block->next;
+
+    if(block->next) block->next->prev = block->prev;
+
+    block->prev = 0;
+    block->next = 0;
+
+    insert_free_block(block);
+
+    if(block->next &&
+       (ukint_8*)block + BLOCK_SIZE + block->size == (ukint_8*)block->next) {
+        block->size += BLOCK_SIZE + block->next->size;
+        block->next = block->next->next;
+        if(block->next) block->next->prev = block;
+    }
+
+    if(block->prev &&
+       (ukint_8*)block->prev + BLOCK_SIZE + block->prev->size == (ukint_8*)block) {
+        block->prev->size += BLOCK_SIZE + block->size;
+        block->prev->next = block->next;
+        if(block->next) block->next->prev = block->prev;
+    }
+}
+
+
+void insert_free_block(Block* block) {
+    Block* cur = free_list;
+    Block* prev = 0;
+
+    while(cur && cur < block) {
+        prev = cur;
+        cur = cur->next;
+    }
+
+    block->prev = prev;
+    block->next = cur;
+
+    if(cur) cur->prev = block;
+    if(prev) prev->next = block;
+    else free_list = block;
+}
+
+
+void HEAP_PRINT_STATUS(void) {
+    ukint32 used_bytes = 0;
+    ukint32 free_bytes = 0;
+    ukint32 used_blocks = 0;
+    ukint32 free_blocks = 0;
+    
+    // Count used blocks
+    Block* current = used_list;
+    while(current) {
+        used_bytes += current->size;
+        used_blocks++;
+        current = current->next;
+    }
+    
+    // Count free blocks
+    current = free_list;
+    while(current) {
+        free_bytes += current->size;
+        free_blocks++;
+        current = current->next;
+    }
+    
+    char buffer[12];
+    vga_print("\n[HEAP] STATUS\n");
+    
+    vga_print("[HEAP] Start: (0x");
+    char hex_buf[9];
+    ukint32 temp = HEAP_START;
+    const char* hex_digits = "0123456789ABCDEF";
+    for(int i = 7; i >= 0; i--) {
+        hex_buf[i] = hex_digits[temp & 0xF];
+        temp >>= 4;
+    }
+    hex_buf[8] = '\0';
+    vga_print(hex_buf);
+    vga_print(")\n");
+    
+    vga_print("[HEAP] End: (0x");
+    temp = HEAP_END;
+    for(int i = 7; i >= 0; i--) {
+        hex_buf[i] = hex_digits[temp & 0xF];
+        temp >>= 4;
+    }
+    vga_print(hex_buf);
+    vga_print(")\n");
+    
+    vga_print("[HEAP] Used: ");
+    int_to_str(used_bytes, buffer);
+    vga_print(buffer);
+    vga_print(" bytes (");
+    int_to_str(used_blocks, buffer);
+    vga_print(buffer);
+    vga_print(" blocks)\n");
+    
+    vga_print("[HEAP] Free: ");
+    int_to_str(free_bytes, buffer);
+    vga_print(buffer);
+    vga_print(" bytes (");
+    int_to_str(free_blocks, buffer);
+    vga_print(buffer);
+    vga_print(" blocks)\n");
+}
+
+// Debug function to dump heap
+void HEAP_DEBUG_DUMP(void) {
+    vga_print("\n[HEAP] DEBUG DUMP:\n");
+    
+    vga_print("Used list:\n");
+    Block* current = used_list;
+    while(current) {
+        char buffer[12];
+        vga_print("  Block at 0x");
+        vga_print(hex_to_str((ukint32)current, buffer));
+        vga_print(", size: ");
+        int_to_str(current->size, buffer);
+        vga_print(buffer);
+        vga_print("\n");
+        current = current->next;
+    }
+    
+    vga_print("Free list:\n");
+    current = free_list;
+    while(current) {
+        char buffer[12];
+        vga_print("  Block at 0x");
+        vga_print(hex_to_str((ukint32)current, buffer));
+        vga_print(", size: ");
+        int_to_str(current->size, buffer);
+        vga_print(buffer);
+        vga_print("\n");
+        current = current->next;
+    }
+}
+
+void HEAP_PRINT_DETAILED(void) {
+    ukint32 total_used = 0;
+    ukint32 total_free = 0;
+    int used_count = 0;
+    int free_count = 0;
+    
+    // Count used blocks
+    Block* current = used_list;
+    while(current) {
+        total_used += current->size;
+        used_count++;
+        current = current->next;
+    }
+    
+    // Count free blocks
+    current = free_list;
+    while(current) {
+        total_free += current->size;
+        free_count++;
+        current = current->next;
+    }
+    
+    char buf[12];
+    vga_print("\n[HEAP DETAILED]\n");
+    vga_print("Used: ");
+    int_to_str(total_used, buf);
+    vga_print(buf);
+    vga_print(" bytes in ");
+    int_to_str(used_count, buf);
+    vga_print(buf);
+    vga_print(" blocks\n");
+    
+    vga_print("Free: ");
+    int_to_str(total_free, buf);
+    vga_print(buf);
+    vga_print(" bytes in ");
+    int_to_str(free_count, buf);
+    vga_print(buf);
+    vga_print(" blocks\n");
+    
+    // Largest free block
+    ukint32 largest_free = 0;
+    current = free_list;
+    while(current) {
+        if(current->size > largest_free) {
+            largest_free = current->size;
+        }
+        current = current->next;
+    }
+    
+    vga_print("Largest free block: ");
+    int_to_str(largest_free, buf);
+    vga_print(buf);
+    vga_print(" bytes\n");
+}
+
+// Reset heap completely
+void HEAP_RESET(void) {
+    vga_print("[HEAP] Resetting heap...\n");
+    HEAP_INIT();
+}
+
+// Kernel/src/Include/HEAP.h
+#ifndef HEAP_H
+#define HEAP_H
+
+#include "KSTINT.h"
+
+#define HEAP_START     0x200000  // 2MB
+#define HEAP_END       0x400000  // 4MB  
+#define HEAP_SIZE      (HEAP_END - HEAP_START)
+#define BLOCK_MAGIC    0xDEADBEEF
+
+typedef struct Block {
+    ukint32 magic;      // Magic number for validation
+    ukint32 size;       // Size of allocated data
+    ukint_8 used;        // 1 = used, 0 = free
+    struct Block* next; // Next block in list
+    struct Block* prev; // Previous block in list
+} Block;
+
+#define BLOCK_SIZE     sizeof(Block)
+#define MIN_BLOCK_SIZE 16
+
+void HEAP_INIT(void);
+void* KMALLOC(ukint32 size);
+void KFREE(void* ptr);
+void HEAP_PRINT_STATUS(void);
+void HEAP_DEBUG_DUMP(void);  // Debug function
+void HEAP_PRINT_DETAILED(void);
+void insert_free_block(Block* block);
+#endif
+
+// Kernel/src/Include/IDT.c
+#include "IDT.h"
+
+idt_entry_t idt[256];   // 256 możliwych przerwań
+idt_ptr_t idt_ptr;
+
+extern void idt_load(ukint32);          // ASM do wczytania IDT
+extern void pit_irq_handler_asm(void);   // ASM wrapper dla PIT
+extern void ps2_irq_asm_handler(void);
+extern void safe_irq_handler_asm(void);
+
+
+void idt_set_gate(int n, ukint32 handler) {
+    idt[n].offset_low  = handler & 0xFFFF;
+    idt[n].selector    = 0x08;  // kernel code segment w GDT
+    idt[n].zero        = 0;
+    idt[n].type_attr   = 0x8E;  // present, ring 0, interrupt gate
+    idt[n].offset_high = (handler >> 16) & 0xFFFF;
+}
+
+void dummy_handler() {
+    // Wysyłaj EOI dla WSZYSTKICH przerwań
+    outb(0x20, 0x20);  // Master PIC EOI
+    outb(0xA0, 0x20);  // Slave PIC EOI (jeśli używasz)
+    
+    // Jeśli to spurious interrupt, po prostu wróć
+    __asm__ volatile("iret");
+}
+
+void safe_irq_handler_c(struct regs* r) {
+    // Zawsze wysyłaj EOI dla IRQ (32+)
+    if(r->int_no >= 32) {
+        outb(0x20, 0x20);
+        
+        // Jeśli z slave PIC
+        if(r->int_no >= 40) {
+            outb(0xA0, 0x20);
+        }
+    }
+}
+
+void IDT_INIT() {
+    idt_ptr.limit = sizeof(idt) - 1;
+    idt_ptr.base  = (ukint32)&idt;
+
+    // Ustaw WSZYSTKIE na safe_irq_handler_asm
+    for (int i = 0; i < 256; i++) {
+        idt_set_gate(i, (ukint32)safe_irq_handler_asm);
+    }
+
+    // Nadpisz specyficzne
+    idt_set_gate(32, (ukint32)pit_irq_handler_asm);
+    idt_set_gate(33, (ukint32)ps2_irq_handler_asm);
+    
+    // Fault handlers (0-31) pozostają na safe_irq_handler_asm
+    // Możesz dodać własne dla konkretnych faultów
+    
+    // Załaduj IDT
+    asm volatile("lidt (%0)" : : "r"(&idt_ptr));
+}
+
+// Bezpieczny handler który zawsze wysyła EOI
+void __attribute__((interrupt)) safe_irq_handler(void* frame) {
+    outb(0x20, 0x20);  // EOI
+}
+
+
+
+// Kernel/src/Include/IDT.h
+#ifndef IDT_H
+#define IDT_H
+#include "KSTINT.h"
+#include "VGA_H.h"
+#include "UTILS.h"
+#include "OUTB_H.h"  // DODAJ TO!
+
+struct regs {
+    ukint32 ds, es, fs, gs;
+    ukint32 edi, esi, ebp, esp, ebx, edx, ecx, eax;
+    ukint32 int_no, err_code;
+    ukint32 eip, cs, eflags, useresp, ss;
+};
+
+// DODAJ TE DEKLARACJE:
+void safe_irq_handler(void);
+void pit_irq_handler(void);
+void ps2_irq_handler(void);
+
+
+typedef struct {
+    ukint_16 offset_low;
+    ukint_16 selector;
+    ukint_8 zero;
+    ukint_8 type_attr;
+    ukint_16 offset_high;
+
+} __attribute__((packed)) idt_entry_t;
+
+typedef struct {
+    ukint_16 limit;   // rozmiar IDT - 1
+    ukint32 base;    // adres tablicy IDT
+} __attribute__((packed)) idt_ptr_t;
+
+void idt_set_gate(int n, ukint32 handler);
+void IDT_INIT(void);
+void dummy_handler(void);
+
+
+#endif
+
+// Kernel/src/Include/KSTINT.h
+#ifndef KSTINT
+#define KSTINT
+
+//Signed Integers
+typedef signed char kint_8;
+typedef short kint_16;
+typedef int kint32;
+typedef long long kint64;
+
+//Unsigned Integers
+
+typedef unsigned char ukint_8;
+typedef unsigned short ukint_16;
+typedef unsigned int ukint32;
+typedef unsigned long long ukint64;
+typedef unsigned long size_t; 
+#endif
+
+
+// Kernel/src/Include/OUTB.c
+// OUTB Support
+// Copyright © Grzegorz Patryk Dytko, w1spo
+// Created 28/10/2025
+//
+// Provides basic OUTB support for Core86 Kernel
+// Supports custom OUTB & INB values
+
+void outb(unsigned short port, unsigned char value) {
+    __asm__ volatile ("outb %0, %1" : : "a"(value), "Nd"(port));
+}
+
+unsigned char inb(unsigned short port) {
+    unsigned char ret;
+    __asm__ volatile ("inb %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
+
+// Kernel/src/Include/OUTB_H.h
+#ifndef OUTB_H
+#define OUTB_H
+#include "KSTINT.h"
+
+void outb(ukint_16 port, ukint_8 value);
+unsigned char inb(ukint_16 port);
+
+#endif
+
+// Kernel/src/Include/PIC.c
+#include "PIC.h"
+
+void pic_init() {
+    outb(0x20, 0x11); // ICW1 master
+    outb(0xA0, 0x11); // ICW1 slave
+    outb(0x21, 0x20); // ICW2 master offset 0x20 (INT 32)
+    outb(0xA1, 0x28); // ICW2 slave offset 0x28
+    outb(0x21, 0x04); // ICW3 master
+    outb(0xA1, 0x02); // ICW3 slave
+    outb(0x21, 0x01); // ICW4 master
+    outb(0xA1, 0x01); // ICW4 slave
+
+    // na start wszystkie IRQ zablokowane
+    outb(0x21, 0xFF);
+    outb(0xA1, 0xFF);
+}
+
+void pic_unmask_irq(ukint_8 irq) {
+    ukint_16 port = (irq < 8) ? 0x21 : 0xA1;
+    ukint_8 mask = inb(port);
+    mask &= ~(1 << (irq % 8));
+    outb(port, mask);
+}
+
+
+// Kernel/src/Include/PIC.h
+#ifndef PIC_H
+#define PIC_H
+
+#include "KSTINT.h"
+#include "OUTB_H.h"
+void pic_init(void);
+void pic_unmask_irq(ukint_8 irq);
+
+
+#endif
+
+// Kernel/src/Include/PIT.c
+#include "PIT.h"
+
+volatile ukint64 pit_ticks = 0;
+
+void pit_init() {
+    ukint64 divisor = PIT_DIVISOR;
+    outb(0x43, 0x26);
+    outb(0x40, divisor & 0xFF);
+    outb(0x40, (divisor >> 8) & 0xFF);
+}
+
+// NIE UŻYWAJ __attribute__((interrupt)) w C
+void PIT_IRQ_HANDLER() {
+    pit_ticks++;
+    outb(0x20, 0x20); // EOI
+}
+
+ukint64 time_ms() {
+    return pit_ticks;
+}
+
+void sleep_ms(ukint64 ms) {
+    ukint64 target = pit_ticks + ms;
+    while(pit_ticks < target) {
+        __asm__ volatile("hlt");
+    }
+}
+
+
+// Kernel/src/Include/PIT.h
+#ifndef PIT_H
+#define PIT_H
+
+#include "KSTINT.h"
+#include "OUTB_H.h"
+#include "PIC.h"
+
+#define PIT_FREQ 1000
+#define PIT_BASE 1193180
+#define PIT_DIVISOR (PIT_BASE / PIT_FREQ)
+
+void pit_init(void);
+void PIT_IRQ_HANDLER(void);
+
+void scheduler_tick(void);
+void pit_send_eoi(void);
+ukint64 time_ms(void);
+
+
+#endif
+
+// Kernel/src/Include/PMM.c
+#include "UTILS.h"
+#include "KSTINT.h"
+#include "PMM.h"
+#include "VGA_H.h"
+
+static ukint32 pmm_bitmap[PMM_BITMAP_SIZE];
+static ukint32 pmm_total_pages = 0;
+static ukint32 pmm_used_pages = 0;
+static ukint32 pmm_bitmap_size = 0;
+
+void PMM_INIT(ukint32 total_memory) {
+    pmm_total_pages = total_memory / PAGE_SIZE;
+    pmm_bitmap_size = (pmm_total_pages + 31) / 32;
+    pmm_used_pages = 0;
+    
+    char buffer[12];
+    vga_print("[PMM] Total memory: ");
+    int_to_str((total_memory / 1024 / 1024), buffer);
+    vga_print(buffer);
+    vga_print("MB (");
+    int_to_str(pmm_total_pages, buffer);
+    vga_print(buffer);
+    vga_print(" pages)\n");
+    
+    // 1. Wyczyść bitmapę (WSZYSTKO WOLNE)
+    for(ukint32 i = 0; i < pmm_bitmap_size; i++) {
+        pmm_bitmap[i] = 0x00000000;  // WSZYSTKO WOLNE na start!
+    }
+    
+    // 2. Zarezerwuj pierwsze 16MB dla kernela
+    ukint32 kernel_pages = (16 * 1024 * 1024) / PAGE_SIZE; // 4096 pages
+    
+    vga_print("[PMM] Reserving ");
+    int_to_str(kernel_pages, buffer);
+    vga_print(buffer);
+    vga_print(" pages (16MB) for kernel\n");
+    
+    // Zarezerwuj strony 0-4095
+    for(ukint32 i = 0; i < kernel_pages; i++) {
+        ukint32 bitmap_index = i / 32;
+        ukint32 bit_index = i % 32;
+        pmm_bitmap[bitmap_index] |= (1 << bit_index);
+    }
+    
+    pmm_used_pages = kernel_pages;  // Ustaw poprawną liczbę
+    
+    vga_print("[PMM] Ready - ");
+    int_to_str(PMM_GET_FREE_PAGES(), buffer);
+    vga_print(buffer);
+    vga_print(" free pages available\n");
+}
+
+ukint32 PMM_ALLOC_PAGE(void) 
+{
+    // Szukaj od strony 4096 (16MB) - unikaj kernel space
+    for (ukint32 i = 4096; i < pmm_total_pages; i++) {
+        ukint32 bitmap_index = i / 32;
+        ukint32 bit_index = i % 32;
+        
+        if(!(pmm_bitmap[bitmap_index] & (1 << bit_index))) {
+            pmm_bitmap[bitmap_index] |= (1 << bit_index);
+            pmm_used_pages++;
+            return i * PAGE_SIZE;
+        }
+    }
+    return 0; // Out of memory
+}
+
+void PMM_FREE_PAGE(ukint32 page)
+{
+    ukint32 page_index = page / PAGE_SIZE;
+    
+    // Nie zwalniaj kernel pages (0-4095)
+    if(page_index < 4096) {
+        return;
+    }
+    
+    ukint32 bitmap_index = page_index / 32;
+    ukint32 bit_index = page_index % 32;
+
+    if (bitmap_index < pmm_bitmap_size) 
+    {
+        // Sprawdź czy strona była rzeczywiście używana
+        if(pmm_bitmap[bitmap_index] & (1 << bit_index)) {
+            pmm_bitmap[bitmap_index] &= ~(1 << bit_index);
+            if(pmm_used_pages > 4096) {  // Zawsze zostaw 4096 dla kernela
+                pmm_used_pages--;
+            }
+        }
+    }
+}
+
+ukint32 PMM_GET_FREE_PAGES(void)
+{
+    if (pmm_total_pages > pmm_used_pages) {
+        return pmm_total_pages - pmm_used_pages;
+    } else {
+        return 0;
+    }
+}
+
+void PMM_PRINT_STATUS()
+{
+    char buffer[12];
+    vga_print("\n[PMM] STATUS\n");
+    
+    vga_print("[PMM] Used Pages: ");
+    int_to_str(pmm_used_pages, buffer);
+    vga_print(buffer);
+    vga_print("\n");
+    
+    vga_print("[PMM] Total Pages: ");
+    int_to_str(pmm_total_pages, buffer);
+    vga_print(buffer);
+    vga_print("\n");
+    
+    vga_print("[PMM] Free Pages: ");
+    int_to_str(PMM_GET_FREE_PAGES(), buffer);
+    vga_print(buffer);
+    vga_print("\n");
+}
+
+// Kernel/src/Include/PMM.h
+#ifndef PMM_H
+#define PMM_H
+
+#include "KSTINT.h"
+
+#define PAGE_SIZE 4096
+#define PMM_BITMAP_SIZE 32768
+
+void PMM_INIT(ukint32 total_memory);
+ukint32 PMM_ALLOC_PAGE(void);
+void PMM_FREE_PAGE(ukint32 page);
+void PMM_FREE_SIZE(void);
+ukint32 PMM_GET_FREE_PAGES(void);
+void PMM_PRINT_STATUS(void);
+
+#endif
+
+// Kernel/src/Include/PS2KB.c
+// BIOS PS2 Driver
+// Copyright © Grzegorz Patryk Dytko, w1spo
+// Created 31/10/2025
+//
+// Provides PS/2 Keyboard Input via BIOS
+// Handles Function Keys, Smart Keys and Keyboard Shortcuts
+// Spookyy hehe
+
+
+#include "PS2KB.h"
+#include "OUTB_H.h"
+#include "VGA_H.h"
+#include "KSTINT.h"
+
+// Keyboard maps
+static char keyboard_map[128] = {
+    0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
+    '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
+    0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 
+    0, '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0,
+    '*', 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    '-', 0, 0, 0, '+', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+static char keyboard_shift_map[128] = {
+    0,  27, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b',
+    '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n',
+    0, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~',
+    0, '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', 0,
+    '*', 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    '-', 0, 0, 0, '+', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+static ukint_8 altPressed = 0;
+static ukint_8 shiftPressed = 0;
+static ukint_8 ctrlPressed = 0;
+
+#define KB_BUFFER_SIZE 256
+#define INPUT_KB_BUFFER 128
+
+static char KB_BUFFER[KB_BUFFER_SIZE];
+static ukint32 bufferStart = 0;
+static ukint32 bufferEnd = 0;
+static ukint32 bufferCount = 0;
+
+void KB_WAIT(void) {
+    while (inb(PS2_STATUS_PORT) & (unsigned char) INPUT_BUFFER_FULL)
+    {
+        //KB WAIT
+    }
+}
+
+void KB_SEND_CMD(ukint_8 cmd) {
+    KB_WAIT();
+    outb(PS2_CMD_PORT, cmd);
+
+}
+
+ukint_8 KB_READ(void){
+    KB_WAIT();
+    return inb(PS2_DATA_PORT);
+}
+
+void PS2_KB_INIT(void) {
+    while (inb(PS2_STATUS_PORT) & OUTPUT_BUFFER_FULL) {
+        inb(PS2_DATA_PORT);
+    }
+
+    KB_SEND_CMD(0xAE);
+    KB_SEND_CMD(0x20);
+    ukint_8 status = KB_READ();
+    status |= 0x01;
+    KB_SEND_CMD(0x60);
+    outb(PS2_DATA_PORT, status);
+    outb(PS2_DATA_PORT, 0xF4);
+    KB_READ();
+
+}
+
+void KB_PUTC(char c) {
+    if (bufferCount < KB_BUFFER_SIZE){
+        KB_BUFFER[bufferEnd] = c;
+        bufferEnd = (bufferEnd + 1) % KB_BUFFER_SIZE;
+        bufferCount++;
+    }
+}
+
+char PS2_KB_GETC(void) {
+    while (bufferCount == 0) {
+        asm volatile("hlt");
+    }
+
+    char c = KB_BUFFER[bufferStart];
+    bufferStart = (bufferStart + 1) % KB_BUFFER_SIZE;
+    bufferCount--;
+
+    return c;
+}
+
+int PS2_KB_HAS_INPUT(){
+    return bufferCount > 0;
+}
+
+void PS2_KB_HANDLER(void) {
+    ukint_8 scancode = inb(PS2_DATA_PORT);
+    ukint_8 keyPressed = !(scancode & 0x80);
+    
+
+    if (keyPressed) {
+        switch (scancode) {
+            case 0x2A: //Left Shift
+                shiftPressed = 1;
+                break;
+            case 0x36: //Right Shift
+                shiftPressed = 1;
+                break;
+            case 0x1D: //Ctrl
+                ctrlPressed = 1;
+                break;
+            case 0x38: //Alt
+                altPressed = 1;
+                break;
+            case 0x49: //Page Up
+                vga_scroll_up();
+                break;
+            case 0x51:
+                vga_scroll_down();
+                break;
+            case 0x47:  // Home
+                if (ctrlPressed) {
+                    // Ctrl+Home - na początek historii
+                    vga_set_scroll_offset(vga_get_scroll_max());
+                }
+                break;
+            
+            case 0x4F:  // End
+                if (ctrlPressed) {
+                    // Ctrl+End - na koniec (aktualny ekran)
+                    vga_set_scroll_offset(0);
+                }
+                break;
+            default:
+                ukint_8 keyCode = scancode & 0x7F;
+                char c = shiftPressed ? keyboard_shift_map[keyCode] : keyboard_map[keyCode];
+                if (c) {
+                    KB_PUTC(c);
+                }
+                break;
+        }
+    } else {
+        switch (scancode) {
+            case 0xAA: //Left Shift release (0x2A + 0x80)
+                shiftPressed = 0;
+                break;
+            case 0xB6: //Right Shift release (0x36 + 0x80)
+                shiftPressed = 0;
+                break;
+            case 0x9D: //Ctrl release (0x1D + 0x80)
+                ctrlPressed = 0;
+                break;
+            case 0xB8: //Alt release (0x38 + 0x80)
+                altPressed = 0;
+                break;
+        }
+    }
+}
+
+char* PS2_KB_READ_LN(void) {
+    static char input_buffer[INPUT_KB_BUFFER];
+    ukint32 pos = 0;
+
+    while (1) {
+        char c = PS2_KB_GETC();
+
+        switch (c) {
+            case '\n': //Enter Key
+                input_buffer[pos] = '\n';
+                vga_char('\n');
+                return input_buffer;
+            case '\b': //Backspace Key
+                if (pos > 0) {
+                    pos--;
+                    vga_char('\b');
+                    vga_char(' ');
+                    vga_char('\b');
+
+                }
+
+                break;
+            default:
+                if (pos < INPUT_KB_BUFFER - 1 && c >= 32 && c <= 126)
+                {   
+                    input_buffer[pos++] = c;
+                    vga_char(c);
+                    break;
+                }
+        }
+    }
+
+}
+
+void PS2_KB_INSTALL(void) {
+    PS2_KB_INIT();
+}
+
+void POLLING_HANDLER(void) {
+
+    if ((inb(PS2_STATUS_PORT) & OUTPUT_BUFFER_FULL) && (bufferCount < KB_BUFFER_SIZE - 10)) {
+            PS2_KB_HANDLER();
+    }
+    
+}
+
+void PS2_IRQ_HANDLER() {
+    if (!(inb(PS2_STATUS_PORT) & OUTPUT_BUFFER_FULL))
+        return;   // nic nie ma w buforze
+
+    PS2_KB_HANDLER(); // tylko jeśli faktycznie jest dane
+    outb(0x20, 0x20); // EOI
+}
+
+
+// Kernel/src/Include/PS2KB.h
+#ifndef PS2_KB
+#define PS2_KB
+
+#include "KSTINT.h"
+
+#define OUTPUT_BUFFER_FULL 1
+#define INPUT_BUFFER_FULL (1<<1)
+
+#define PS2_DATA_PORT 0x60
+#define PS2_STATUS_PORT 0x64
+#define PS2_CMD_PORT 0x64
+
+void PS2_KB_INIT(void);
+void PS2_KB_INSTALL(void);
+char PS2_KB_GETC(void);
+int PS2_KB_HAS_INPUT(void);
+char* PS2_KB_READ_LN(void);
+void PS2_KB_HANDLER();
+void POLLING_HANDLER(void);
+void PS2_IRQ_HANDLER(void);
+
+#endif
+
+// Kernel/src/Include/UTILS.c
+#include "KSTINT.h"
+#include "UTILS.h"
+#include "VGA_H.h"
+
+void int_to_str(ukint32 num, char* buffer) {
+    char temp[12];
+    int i = 0;
+    
+    if (num == 0) {
+        buffer[0] = '0';
+        buffer[1] = '\0';
+        return;
+    }
+    
+    // Konwertuj do tymczasowego buffera (odwrócona kolejność)
+    while (num > 0) {
+        temp[i++] = '0' + (num % 10);
+        num /= 10;
+    }
+    
+    // Odwróć kolejność
+    for (int j = 0; j < i; j++) {
+        buffer[j] = temp[i - j - 1];
+    }
+    buffer[i] = '\0';
+}
+
+void print_hex(ukint32 num) {
+    char hex_chars[] = "0123456789ABCDEF";
+    
+    vga_print("0x");
+    
+    // Print each hex digit
+    for(int i = 28; i >= 0; i -= 4) {
+        ukint32 digit = (num >> i) & 0xF;
+        vga_char(hex_chars[digit]);
+    }
+}
+
+char* hex_to_str(ukint32 value, char* buffer) {
+    const char* hex_digits = "0123456789ABCDEF";
+    
+    buffer[0] = '0';
+    buffer[1] = 'x';
+    
+    for(int i = 0; i < 8; i++) {
+        buffer[9 - i] = hex_digits[value & 0xF];
+        value >>= 4;
+    }
+    buffer[10] = '\0';
+    
+    return buffer;
+}
+
+void* memcpy(void* dest, const void* src, ukint32 n) {
+    char* d = (char*)dest;
+    const char* s = (const char*)src;
+    
+    for(ukint32 i = 0; i < n; i++) {
+        d[i] = s[i];
+    }
+    
+    return dest;
+}
+
+void* memset(void* dest, int value, ukint32 n) {
+    char* d = (char*)dest;
+    
+    for(ukint32 i = 0; i < n; i++) {
+        d[i] = (char)value;
+    }
+    
+    return dest;
+}
+
+// Kernel/src/Include/UTILS.h
+#ifndef UTILS_H
+#define UTILS_H
+
+#include "KSTINT.h"
+
+void int_to_str(ukint32 num, char* buffer);
+char* hex_to_str(ukint32 value, char* buffer); 
+void print_hex(ukint32 num);
+void* memcpy(void* dest, const void* src, ukint32 n);
+void* memset(void* dest, int value, ukint32 n);
+
+#endif
+
+// Kernel/src/Include/VGA_DRV.c
+#include "VGA_H.h"
+#include "KSTINT.h"
+#include "OUTB_H.h"
+// Usuń #include <string.h>
+
+static ukint_16* const VGA_BUFFER = (ukint_16*) VGA_MEM;
+static ukint_8 vga_color = 0;
+static int cursorx = 0;
+static int cursory = 0;
+static int scroll_offset = 0;
+
+// Bufor historii (okrągły)
+static ukint_16 vga_history[VGA_HISTORY_SIZE * VGA_WIDTH];
+static int history_start = 0;
+static int history_count = 0;
+
+/**
+ * Prosta funkcja kopiowania dla VGA
+ */
+static void vga_copy_line(ukint_16* dest, const ukint_16* src) {
+    for(int x = 0; x < VGA_WIDTH; x++) {
+        dest[x] = src[x];
+    }
+}
+
+/**
+ * Zwraca indeks w buforze historii dla danej linii
+ */
+static int history_line_index(int line) {
+    return (history_start + line) % VGA_HISTORY_SIZE;
+}
+
+/**
+ * Dodaje linię do historii
+ */
+static void add_line_to_history(int y) {
+    int target_idx;
+    
+    if (history_count < VGA_HISTORY_SIZE) {
+        target_idx = history_count;
+        history_count++;
+    } else {
+        target_idx = history_start;
+        history_start = (history_start + 1) % VGA_HISTORY_SIZE;
+    }
+    
+    // Kopiuj linię do historii (bez memcpy)
+    ukint_16* dest = &vga_history[target_idx * VGA_WIDTH];
+    const ukint_16* src = &VGA_BUFFER[y * VGA_WIDTH];
+    vga_copy_line(dest, src);
+}
+
+/**
+ * Przewija ekran w dół (jak teraz)
+ */
+void vga_scroll(void) {
+    // Dodaj górną linię do historii przed scrollowaniem
+    add_line_to_history(0);
+    
+    // Przesuń linie w górę
+    for (int y = 1; y < VGA_HEIGHT; y++) {
+        for (int x = 0; x < VGA_WIDTH; x++) {
+            VGA_BUFFER[(y-1)*VGA_WIDTH + x] = VGA_BUFFER[y*VGA_WIDTH + x];
+        }
+    }
+    
+    // Wyczyść ostatnią linię
+    for (int x = 0; x < VGA_WIDTH; x++) {
+        VGA_BUFFER[(VGA_HEIGHT-1)*VGA_WIDTH + x] = vga_entry(' ', vga_color);
+    }
+    
+    cursorx = 0;
+    cursory = VGA_HEIGHT - 1;
+    scroll_offset = 0;
+    update_cursor();
+}
+
+/**
+ * Przewija ekran w górę (do historii)
+ */
+void vga_scroll_up(void) {
+    int max_offset = history_count - VGA_HEIGHT;
+    if (max_offset < 0) max_offset = 0;
+    
+    if (scroll_offset < max_offset) {
+        scroll_offset++;
+        redraw_screen_from_history();
+    }
+}
+
+/**
+ * Przewija ekran w dół (do aktualnych danych)
+ */
+void vga_scroll_down(void) {
+    if (scroll_offset > 0) {
+        scroll_offset--;
+        redraw_screen_from_history();
+    }
+}
+
+/**
+ * Przeładowuje ekran z historii
+ */
+void redraw_screen_from_history(void) {
+    // Oblicz które linie historii wyświetlić
+    int start_line = 0;
+    
+    if (history_count > VGA_HEIGHT) {
+        start_line = history_count - VGA_HEIGHT - scroll_offset;
+        if (start_line < 0) start_line = 0;
+    }
+    
+    int lines_to_show = VGA_HEIGHT;
+    if (history_count < VGA_HEIGHT) {
+        lines_to_show = history_count;
+        start_line = 0;
+    }
+    
+    // Wypełnij ekran z historii
+    for (int screen_y = 0; screen_y < lines_to_show; screen_y++) {
+        int history_y = start_line + screen_y;
+        if (history_y >= history_count) {
+            // Wypełnij puste linie
+            for (int x = 0; x < VGA_WIDTH; x++) {
+                VGA_BUFFER[screen_y * VGA_WIDTH + x] = vga_entry(' ', vga_color);
+            }
+            continue;
+        }
+        
+        int history_idx = history_line_index(history_y);
+        ukint_16* src = &vga_history[history_idx * VGA_WIDTH];
+        
+        for (int x = 0; x < VGA_WIDTH; x++) {
+            VGA_BUFFER[screen_y * VGA_WIDTH + x] = src[x];
+        }
+    }
+    
+    // Wypełnij pozostałe linie jeśli historia jest za krótka
+    for (int screen_y = lines_to_show; screen_y < VGA_HEIGHT; screen_y++) {
+        for (int x = 0; x < VGA_WIDTH; x++) {
+            VGA_BUFFER[screen_y * VGA_WIDTH + x] = vga_entry(' ', vga_color);
+        }
+    }
+    
+    // Ustaw kursor
+    if (scroll_offset == 0) {
+        cursorx = 0;
+        cursory = VGA_HEIGHT - 1;
+    } else {
+        cursorx = 0;
+        cursory = 0;
+    }
+    
+    update_cursor();
+}
+
+/**
+ * Zwraca aktualny offset scrolla
+ */
+int vga_get_scroll_offset(void) {
+    return scroll_offset;
+}
+
+/**
+ * Ustawia offset scrolla
+ */
+void vga_set_scroll_offset(int offset) {
+    if (offset < 0) offset = 0;
+    int max_offset = history_count - VGA_HEIGHT;
+    if (max_offset < 0) max_offset = 0;
+    
+    if (offset > max_offset) {
+        offset = max_offset;
+    }
+    
+    scroll_offset = offset;
+    redraw_screen_from_history();
+}
+
+void vga_init(void) {
+    vga_color = vga_entry_color(VGA_LIGHT_GREY, VGA_BLACK);
+    history_start = 0;
+    history_count = 0;
+    scroll_offset = 0;
+    vga_clear();
+}
+
+void vga_clear(void) {
+    for (int y = 0; y < VGA_HEIGHT; y++) {
+        for (int x = 0; x < VGA_WIDTH; x++) {
+            VGA_BUFFER[y * VGA_WIDTH + x] = vga_entry(' ', vga_color);
+        }
+    }
+    cursorx = cursory = 0;
+    scroll_offset = 0;
+    history_start = 0;
+    history_count = 0;
+    update_cursor();
+}
+
+int vga_get_history_count(void) {
+    return history_count;
+}
+
+int vga_get_scroll_max(void) {
+    int max = history_count - VGA_HEIGHT;
+    return max > 0 ? max : 0;
+}
+
+// --- Zachowaj oryginalne funkcje ---
+void update_cursor(void) {
+    ukint_16 pos = cursory * VGA_WIDTH + cursorx;
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (ukint_8)(pos & 0xFF));
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (ukint_8)((pos >> 8) & 0xFF));
+}
+
+void vga_char(char c) {
+    if (c == '\n') {
+        cursorx = 0;
+        cursory++;
+    } else if (c == '\r') {
+        cursorx = 0;
+    } else if (c == '\b') {
+        if (cursorx > 0) {
+            cursorx--;
+            VGA_BUFFER[cursory * VGA_WIDTH + cursorx] = vga_entry(' ', vga_color);
+        } else if (cursory > 0) {
+            cursory--;
+            cursorx = VGA_WIDTH - 1;
+            VGA_BUFFER[cursory * VGA_WIDTH + cursorx] = vga_entry(' ', vga_color);
+        }
+    } else {
+        const int index = cursory * VGA_WIDTH + cursorx;
+        VGA_BUFFER[index] = vga_entry(c, vga_color);
+        cursorx++;
+        if (cursorx >= VGA_WIDTH) {
+            cursorx = 0;
+            cursory++;
+        }
+    }
+
+    if (cursory >= VGA_HEIGHT) {
+        vga_scroll();
+    }
+
+    update_cursor();
+}
+
+void vga_print(const char *str) {
+    while (*str) {
+        vga_char(*str);
+        str++;
+    }
+}
+
+void vga_colors(enum VGA_COLOUR fg, enum VGA_COLOUR bg) {
+    vga_color = vga_entry_color(fg, bg);
+}
+
+// Kernel/src/Include/VGA_H.h
+#ifndef VGA_DRV
+#define VGA_DRV
+
+#include "KSTINT.h"
+#define VGA_WIDTH 80
+#define VGA_HEIGHT 25
+#define VGA_MEM 0xB8000
+#define VGA_HISTORY_SIZE 10000
+
+enum VGA_COLOUR {
+    VGA_BLACK = 0,
+    VGA_BLUE = 1,
+    VGA_GREEN = 2,
+    VGA_CYAN = 3,
+    VGA_RED = 4,
+    VGA_MAGENTA = 5,
+    VGA_BROWN = 6,
+    VGA_LIGHT_GREY = 7,
+    VGA_DARK_GREY = 8,
+    VGA_LIGHT_BLUE = 9,
+    VGA_LIGHT_GREEN = 10,
+    VGA_LIGHT_CYAN = 11,
+    VGA_LIGHT_RED = 12,
+    VGA_LIGHT_MAGENTA = 13,
+    VGA_LIGHT_BROWN = 14,
+    VGA_WHITE = 15,
+};
+
+static inline ukint_8 vga_entry_color(enum VGA_COLOUR fg, enum VGA_COLOUR bg) {
+    return fg | (bg << 4);
+}
+
+static inline ukint_16 vga_entry(unsigned char uc, ukint_8 color) {
+    return (ukint_16) uc | ((ukint_16) color << 8);
+}
+
+void vga_init(void);
+void vga_clear(void);
+void vga_char(char c);
+void vga_print(const char* str);
+void vga_colors(enum VGA_COLOUR fg, enum VGA_COLOUR bg);
+void vga_scroll_up(void);
+void vga_scroll_down(void);
+void update_cursor(void);
+void redraw_screen_from_history(void);
+void redraw_screen_from_history(void);
+int vga_get_scroll_offset(void);
+void vga_set_scroll_offset(int offset);
+int vga_get_history_count(void);
+int vga_get_scroll_max(void);
+
+static void vga_memcpy(ukint_16* dest, const ukint_16* src, int count) {
+    for(int i = 0; i < count; i++) {
+        dest[i] = src[i];
+    }
+}
+
+#endif
+
+
+// Kernel/src/Include/VMM.c
+#include "VMM.h"
+#include "VGA_H.h"
+#include "UTILS.h"
+
+ukint32* page_directory = (ukint32*)PAGE_DIRECTORY_ADDRESS;
+ukint32* first_page_table = (ukint32*)PAGE_TABLE_ADDRESS;
+
+void VMM_INIT(void) {
+    vga_print("[VMM] Step 1: Clearing page directory...\n");
+    
+    // Clear page directory
+    for(ukint32 i = 0; i < 1024; i++) {
+        page_directory[i] = PAGE_PRESENT | PAGE_WRITABLE;
+    }
+    vga_print("[VMM] Step 1: OK\n");
+    
+    vga_print("[VMM] Step 2: Mapping first 4MB...\n");
+    // Identity map first 4MB
+    for(ukint32 i = 0; i < 1024; i++) {
+        first_page_table[i] = (i * PAGE_SIZE) | PAGE_PRESENT | PAGE_WRITABLE;
+    }
+    vga_print("[VMM] Step 2: OK\n");
+    
+    vga_print("[VMM] Step 3: Setting page directory entry...\n");
+    // Set first page directory entry
+    page_directory[0] = (ukint32)first_page_table | PAGE_PRESENT | PAGE_WRITABLE;
+    vga_print("[VMM] Step 3: OK\n");
+    
+    vga_print("[VMM] Initialization complete\n");
+}
+
+void VMM_ENABLE_PAGING(void) {
+    vga_print("[VMM] Step 4: Loading CR3...\n");
+    
+    // Load page directory to CR3
+    asm volatile("mov %0, %%cr3" :: "r"((ukint32)page_directory));
+    vga_print("[VMM] Step 4: OK - CR3 loaded\n");
+    
+    vga_print("[VMM] Step 5: Enabling paging bit...\n");
+    ukint32 cr0;
+    asm volatile("mov %%cr0, %0" : "=r"(cr0));
+    vga_print("[VMM] CR0 before: 0x");
+    print_hex(cr0);
+    vga_print("\n");
+    
+    cr0 |= 0x80000000; // Enable paging
+    
+    asm volatile("mov %0, %%cr0" :: "r"(cr0));
+    vga_print("[VMM] Step 5: OK - Paging enabled\n");
+    
+    // Verify
+    asm volatile("mov %%cr0, %0" : "=r"(cr0));
+    vga_print("[VMM] CR0 after: 0x");
+    print_hex(cr0);
+    vga_print("\n");
+    
+    vga_print("[VMM] Paging successfully enabled!\n");
+}
+
+// Kernel/src/Include/VMM.h
+#ifndef VMM_H
+#define VMM_H
+
+#include "KSTINT.h"
+#include "PMM.h"
+
+// UŻYJ WYŻSZYCH ADRESÓW - POZA KERNEL ZONE!
+#define PAGE_DIRECTORY_ADDRESS 0x1000000  // 16MB - koniec kernel zone
+#define PAGE_TABLE_ADDRESS     0x1001000  // 16MB + 4KB
+
+#define PAGE_PRESENT    (1 << 0)
+#define PAGE_WRITABLE   (1 << 1)
+#define PAGE_USER       (1 << 2)
+
+void VMM_INIT(void);
+void VMM_MAP_PAGE(ukint32 virtual_addr, ukint32 physical_addr, ukint32 flags);
+void VMM_ENABLE_PAGING(void);
+
+#endif
+
+// Kernel/src/KERNEL.c
+#include "Include/VGA_H.h"
+#include "Include/PS2KB.h"
+#include "Include/KSTINT.h"
+#include "Include/OUTB_H.h"
+#include "Include/PMM.h"
+#include "Include/UTILS.h"
+#include "Include/VMM.h"
+#include "Include/HEAP.h"
+#include "Include/DEBUG.h"
+
+#include "Include/PIT.h"
+#include "Include/PIC.h"
+#include "Include/IDT.h"
+
+ukint32 detect_memory_simple(void) {
+    return 512 * 1024 * 1024;  // 512MB
+}
+
+
+// W kernel_main:
+void kernel_main(void) {
+    vga_init();
+    vga_print("Core86 - Initializing...\n");
+    
+    // 1. IDT najpierw
+    IDT_INIT();
+    
+    // 2. PIC
+    pic_init();
+    
+    // 3. Inne inicjalizacje (BEZ przerwań jeszcze)
+    ukint32 total_memory = detect_memory_simple();
+    PMM_INIT(total_memory);
+    VMM_INIT();
+    HEAP_INIT();
+    VMM_ENABLE_PAGING();
+    
+    // 4. PIT i klawiatura (ale IRQ jeszcze zablokowane)
+    pit_init();
+    PS2_KB_INSTALL();
+    
+    // 5. ODMASKUJ TYLKO KLAWIATURĘ na początek
+    pic_unmask_irq(1);  // IRQ1 (klawiatura)
+    // pic_unmask_irq(0);  // IRQ0 (PIT) - ZAKOMENTUJ NA RAZIE
+    
+    // 6. WYGŁADŹ - wyślij EOI dla wszystkich możliwych przerwań
+    outb(0x20, 0x20);  // Master PIC EOI
+    outb(0xA0, 0x20);  // Slave PIC EOI
+    
+    // 7. TEST przed włączeniem przerwań
+    vga_print("\nTesting heap BEFORE interrupts...\n");
+    verify_heap_clean();
+    
+    // 8. TERAZ włącz przerwania - ale tylko jeśli wszystko OK
+    vga_print("\nEnabling interrupts (keyboard only)...\n");
+    __asm__ volatile("sti");
+    
+    // 9. Sprawdź czy żyjemy
+    vga_print("Interrupts enabled! Type something...\n> ");
+    
+    // 10. Main loop
+    while (1) {
+        __asm__ volatile("hlt");  // Czekaj na przerwanie
+    }
+}
+

@@ -1,48 +1,35 @@
 #!/bin/bash
 set -e
 
+CFLAGS="-std=gnu99 -ffreestanding -O0 -g -Wall -Wextra -nostdlib -nostdinc"
+CC=i686-elf-gcc
+
+
 rm -rf Build
 mkdir -p Build/Compile
 # Compile Bootloader
 i686-elf-as Mandatory/boot.s -o Build/Compile/boot.o
 
 # Compile Kernel
-i686-elf-gcc -c Kernel/src/KERNEL.c -o Build/Compile/kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -nostdlib -nostdinc
+echo "[*] Compiling C files..."
 
-#Compile VGA Driver
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/VGA_DRV.c -o Build/Compile/vga.o
+for file in Kernel/src/*.c Kernel/src/Include/*.c; do
+    obj=Build/Compile/$(basename "$file" .c).o
+    echo "    CC $file"
+    $CC $CFLAGS -c "$file" -o "$obj"
+done
 
-#Compile OUTB Class
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/OUTB.c -o Build/Compile/outb.o
+echo "[*] Compiling ASM..."
 
-#Compile PS/2 Driver Class
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/PS2KB.c -o Build/Compile/ps2drv.o
-
-
-
-#Compile UTILS
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/UTILS.c -o Build/Compile/UTILS.o
-
-#Compile PMM/VMM/HEAP
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/PMM.c -o Build/Compile/pmm.o
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/VMM.c -o Build/Compile/vmm.o
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/HEAP.c -o Build/Compile/heap.o
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/DEBUG.c -o Build/Compile/debug.o
-
-#Compile IDT & PIC & PIT & ASM CODE FOR IRQs
-
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/IDT.c -o Build/Compile/idt.o
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/PIC.c -o Build/Compile/pic.o
-i686-elf-gcc -ffreestanding -c Kernel/src/Include/PIT.c -o Build/Compile/pit.o
-
-#ASM
-nasm -f elf32 Kernel/src/Include/pit_irq_handler.asm -o Build/Compile/pit_handler.o
-nasm -f elf32 Kernel/src/Include/ps2_irq_handler.asm -o Build/Compile/ps2_asm_handler.o
-nasm -f elf32 Kernel/src/Include/idt_load.asm -o Build/Compile/idt_load.o
+i686-elf-as Mandatory/boot.s -o Build/Compile/boot.o
 
 # Link
-i686-elf-gcc -T Mandatory/linker.ld -o Build/kernel.bin -ffreestanding -O2 -nostdlib Build/Compile/boot.o Build/Compile/kernel.o Build/Compile/vga.o Build/Compile/outb.o Build/Compile/ps2drv.o Build/Compile/pmm.o Build/Compile/UTILS.o Build/Compile/heap.o Build/Compile/vmm.o Build/Compile/debug.o Build/Compile/idt_load.o Build/Compile/idt.o Build/Compile/pic.o Build/Compile/ps2_asm_handler.o Build/Compile/pit_handler.o Build/Compile/pit.o
-# Multiboot GRUB check
+echo "[*] Linking kernel..."
+
+i686-elf-gcc -T Mandatory/linker.ld -o Build/kernel.bin \
+    -ffreestanding -nostdlib -g \
+    Build/Compile/*.o
+
 if grub-file --is-x86-multiboot Build/kernel.bin; then
     echo "Multiboot confirmed"
 else
@@ -55,6 +42,7 @@ mkdir -p Build/isodir/boot/grub
 cp Build/kernel.bin Build/isodir/boot/kernel.bin
 cp Mandatory/grub.cfg Build/isodir/boot/grub/grub.cfg
 cp Mandatory/RunQemu.sh Build/
+cp Mandatory/RunQemu_D.sh Build/
 
 # Create ISO image
 grub-mkrescue -o Build/system.iso Build/isodir

@@ -18,5 +18,5 @@ void debug_print(const char* str);
 void check_page_tables(void);
 void ultimate_test(void);
 void verify_heap_clean(void);
-
+void keyboard_test_handler(void);
 #endif

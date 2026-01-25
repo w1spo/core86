@@ -1,2 +1,2 @@
 #!/bin/bash
-qemu-system-x86_64 -cdrom system.iso -m 512M
+qemu-system-x86_64 -cdrom system.iso -m 512M -machine pc

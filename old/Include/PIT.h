@@ -11,6 +11,7 @@
 
 void pit_init(void);
 void PIT_IRQ_HANDLER(void);
+
 void scheduler_tick(void);
 void pit_send_eoi(void);
 ukint64 time_ms(void);
