@@ -14,7 +14,7 @@ _start:
     mov $stack_top, %esp
     
     # Wywołanie funkcji kernel_main
-    call kernel_main
+    call kmain
     
     # Pętla nieskończona jeśli kernel_main wróci
 _hang:
