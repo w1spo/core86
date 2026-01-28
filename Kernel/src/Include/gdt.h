@@ -11,6 +11,11 @@ struct gdt_entry {
     uint8 access;
     uint8 granularity;
     uint8 base_high;
-};
+}__attribute__((packed));
+
+struct gdtr {
+    uint16 limit;
+    uint32 base;
+}__attribute__((packed));
 
 #endif
