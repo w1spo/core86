@@ -1,0 +1,16 @@
+#ifndef GDT_H
+#define GDT_H
+
+#include "types.h"
+
+struct gdt_entry {
+
+    uint16 limit_low;
+    uint16 base_low;
+    uint8 base_middle;
+    uint8 access;
+    uint8 granularity;
+    uint8 base_high;
+};
+
+#endif
