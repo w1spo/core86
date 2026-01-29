@@ -19,5 +19,7 @@ struct gdtr {
 }__attribute__((packed));
 
 void gdt_init(void);
+void gdt_set(int i, uint32 base, uint32 limit, uint8 access, uint8 gran);
+int gdt_flush(uintptr gdtr_adr);
 
 #endif

@@ -12,4 +12,5 @@ typedef signed long long int64;
 typedef unsigned int size_t;
 typedef char* string;
 typedef const char* cstring;
+typedef unsigned int uintptr;
 #endif
