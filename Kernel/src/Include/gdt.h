@@ -18,4 +18,6 @@ struct gdtr {
     uint32 base;
 }__attribute__((packed));
 
+void gdt_init(void);
+
 #endif
