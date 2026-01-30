@@ -1,12 +1,40 @@
 #include "idt.h"
+#include "pit.h"
 #include "serial.h"
 #include "types.h"
+#include "utils.h"
 
 struct idt_entry idt[256];
 struct idt_ptr idtp;
-void dummy_isr()
-{
-    serial_write_line(0x3F8, "[PANIC] Unxpected Interrupt");
+
+void dummy_isr(void) {
+    uint32 int_no, eip;
+    
+    /* Pobierz numer przerwania i EIP ze stosu */
+    __asm__ volatile(
+        "mov 4(%%esp), %0\n"
+        "mov 8(%%esp), %1"
+        : "=r"(int_no), "=r"(eip)
+    );
+    
+    /* Wypisz przez proste funkcje (bez formatowania) */
+    serial_write_line(0x3F8, "[PANIC] Unexpected interrupt");
+    
+    /* Wypisz numer przerwania */
+    char msg1[50];
+    itoa(int_no, msg1, 10);
+    serial_write_line(0x3F8, msg1);
+    
+    /* Wypisz EIP w hex */
+    char msg2[50];
+    serial_write_line(0x3F8, "EIP: ");
+    hex_to_str(eip, msg2);
+    serial_write_line(0x3F8, msg2);
+    
+    /* EOI do PIC */
+    outb(0x20, 0x20);
+    outb(0xA0, 0x20);
+    
     while(1);
 }
 
@@ -40,6 +68,7 @@ void idt_init()
     }
 
     idt_set(0, divide_by_zero);
+    idt_set(32, pit_handler);
 
     idt_load();
 
