@@ -6,6 +6,12 @@
 
 extern volatile uint32 system_ticks;
 
+struct interrupt_frame {
+    uint32 eip;
+    uint32 cs;
+    uint32 eflags;
+};
+
 void init_pit(uint32 hz);
 void pit_handler(void);
 void ksleep(uint32 ms);

@@ -46,25 +46,35 @@ _start:
     
     
     movl $0x0010A000, %edi
-    movl $gdt_start, %esi
-    movl $(gdt_end - gdt_start), %ecx
-    rep movsb
     
     
-    movl $0x0010A000, gdtr + 2
-    lgdt (gdtr)
+    movl $0, (%edi)
+    movl $0, 4(%edi)
+    
+    
+    movl $0x0000FFFF, 8(%edi)      
+    movl $0x00CF9A00, 12(%edi)     
+    
+    
+    movl $0x0000FFFF, 16(%edi)     
+    movl $0x00CF9200, 20(%edi)     
+    
+    
+    movw $23, gdt_limit            
+    movl $0x0010A000, gdt_base     
+    lgdt gdt_descriptor
     
     
     movl %cr0, %eax
-    orl $0x1, %eax
+    orl $1, %eax
     movl %eax, %cr0
     
     
-    ljmp $CODE_SEG, $reload_segments
+    ljmp $0x08, $reload_cs
 
-reload_segments:
+reload_cs:
     
-    movw $DATA_SEG, %ax
+    movw $0x10, %ax
     movw %ax, %ds
     movw %ax, %es
     movw %ax, %fs
@@ -82,7 +92,12 @@ reload_segments:
     
     call k_init
 
-kernel_halt:
+hang:
     cli
     hlt
-    jmp kernel_halt
+    jmp hang
+
+.section .data
+gdt_descriptor:
+gdt_limit:  .word 0
+gdt_base:   .long 0

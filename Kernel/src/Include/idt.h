@@ -19,7 +19,7 @@ struct idt_ptr {
     uint32 base;
 } __attribute__((packed));
 
-/* Tablica IDT */
+
 extern struct idt_entry idt[256];
 
 void dummy_isr(void);

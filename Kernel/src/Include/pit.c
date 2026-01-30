@@ -5,9 +5,11 @@
 
 volatile uint32 system_ticks = 0;
 
-void init_pit(uint32 hz)  /* Zmień nazwę parametru! */
+
+
+void init_pit(uint32 hz)  
 {
-    uint32 divisor = 1193182 / hz;  /* Użyj hz, nie freq! */
+    uint32 divisor = 1193182 / hz;  
     
     serial_write_line(0x3F8, "[PIT] Setting frequency: ");
     char buf[20];
@@ -27,39 +29,44 @@ uint64 get_ticks(void)
 
 void ksleep(uint32 ms)
 {
-    uint32 target = system_ticks + ms;  /* Użyj uint32! */
+    uint32 target = system_ticks + ms;  
     while(target > system_ticks)
     {
         asm volatile("hlt");
     } 
 }
 
-void pit_handler(void) 
-{
-    static uint32 counter = 0;
-    static uint8 first_three_done = 0;
-    
-    /* 1. INKREMENT - atomic? */
-    uint32 current = system_ticks + 1;
-    system_ticks = current;
-    
-    /* 2. EOI */
-    outb(0x20, 0x20);
-    
-    /* 3. DEBUG - tylko pierwsze 3 RAZ */
-    if(current <= 3 && !first_three_done) {
-        serial_write_line(0x3F8, "[PIT] Tick ");
-        char buf[20];
-        itoa(current, buf, 10);
-        serial_write_line(0x3F8, buf);
+__attribute__((naked)) 
+void pit_handler(void) {
+    __asm__ volatile(
+        "pusha\n"
+        "push %%ds\n"      
+        "push %%es\n"
+        "push %%fs\n"
+        "push %%gs\n"
         
-        if(current == 3) first_three_done = 1;
-    }
-    
-    /* 4. 100ms counter */
-    counter++;
-    if(counter >= 100) {
-        counter = 0;
-        serial_write_line(0x3F8, "[PIT] 100ms");
-    }
+        "mov $0x10, %%ax\n"
+        "mov %%ax, %%ds\n"
+        "mov %%ax, %%es\n"
+        "mov %%ax, %%fs\n"
+        "mov %%ax, %%gs\n"
+        
+        
+        "movl $system_ticks, %%ecx\n"
+        "incl (%%ecx)\n"
+        
+        
+        "movb $0x20, %%al\n"
+        "outb %%al, $0x20\n"
+        
+        
+        "pop %%gs\n"
+        "pop %%fs\n"
+        "pop %%es\n"
+        "pop %%ds\n"
+        "popa\n"
+        
+        "iret\n"
+        : : : "memory"
+    );
 }
