@@ -1,6 +1,6 @@
 #ifndef kernel_h
 #define kernel_h
 
-void kmain(void);
+void k_init(void);
 
 #endif
