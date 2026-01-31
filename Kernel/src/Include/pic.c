@@ -19,6 +19,6 @@ void remap_pic()
     outb(PIC2_COMMAND, mask2);
     outb(0x21, 0xFE);
     outb(0xA1, 0xFF);
-    serial_write_line(0x3F8, "[INFO] PIC remapped (IRQ0->32)");
+    serial_write_line(COM1_PORT, "[INFO] PIC remapped (IRQ0->32)");
 
 }

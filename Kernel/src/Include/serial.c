@@ -1,12 +1,12 @@
 #include "serial.h"
+#include "config.h"
 #include "types.h"
 
-const uint32 baud_rate = 115200;
 
 void serial_init(uint16 serial_port)
 {
 
-    uint16 divisor = 115200 / baud_rate;
+    uint16 divisor = 115200 / BAUD_RATE;
     uint8 divisor_low  = divisor & 0xFF;
     uint8 divisor_high = (divisor >> 8) & 0xFF;
     outb(serial_port + 1, 0x00);

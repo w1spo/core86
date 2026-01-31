@@ -15,7 +15,7 @@ void gdt_set(int i, uint32 base, uint32 limit, uint8 access, uint8 gran)
     gdt[i].base_high = (base >> 24) & 0xFF;
     gdt[i].limit_low = limit & 0xFFFF;
     gdt[i].granularity = ((limit >> 16) & 0x0F) | (gran & 0xF0);
-    serial_write_line(0x3F8, "[GDT] Set");
+    serial_write_line(COM1_PORT, "[GDT] Set");
 }
 
 void gdt_init()
@@ -26,5 +26,5 @@ void gdt_init()
     gdt_set(0, 0, 0, 0, 0);
     gdt_set(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);
     gdt_set(2, 0, 0xFFFFFFFF, 0x92, 0xCF);
-    serial_write_line(0x3F8, "[GDT] Initialized");
+    serial_write_line(COM1_PORT, "[GDT] Initialized");
 }

@@ -18,18 +18,18 @@ void dummy_isr(void) {
     );
     
     
-    serial_write_line(0x3F8, "[PANIC] Unexpected interrupt");
+    serial_write_line(COM1_PORT, "[PANIC] Unexpected interrupt");
     
     
     char msg1[50];
     itoa(int_no, msg1, 10);
-    serial_write_line(0x3F8, msg1);
+    serial_write_line(COM1_PORT, msg1);
     
     
     char msg2[50];
-    serial_write_line(0x3F8, "EIP: ");
+    serial_write_line(COM1_PORT, "EIP: ");
     hex_to_str(eip, msg2);
-    serial_write_line(0x3F8, msg2);
+    serial_write_line(COM1_PORT, msg2);
     
     
     outb(0x20, 0x20);
@@ -40,7 +40,7 @@ void dummy_isr(void) {
 
 void divide_by_zero()
 {
-    serial_write_line(0x3F8, "[PANIC] Can't divide by zero");
+    serial_write_line(COM1_PORT, "[PANIC] Can't divide by zero");
     while(1);
 }
 

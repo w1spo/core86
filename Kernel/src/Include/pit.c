@@ -11,11 +11,11 @@ void init_pit(uint32 hz)
 {
     uint32 divisor = 1193182 / hz;  
     
-    serial_write_line(0x3F8, "[PIT] Setting frequency: ");
+    serial_write_line(COM1_PORT, "[PIT] Setting frequency: ");
     char buf[20];
     itoa(hz, buf, 10);
-    serial_write_line(0x3F8, buf);
-    serial_write_line(0x3F8, " Hz");
+    serial_write_line(COM1_PORT, buf);
+    serial_write_line(COM1_PORT, " Hz");
     
     outb(0x43, 0x36);
     outb(0x40, divisor & 0xFF);
