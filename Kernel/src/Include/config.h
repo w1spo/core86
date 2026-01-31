@@ -14,12 +14,14 @@
 #define VGA_TEXT       0x000B8000
 #define EBDA_START     0x00080000
 #define KERNEL_LOAD    0x00100000
+#define KERNEL_END     0x01000000
 #define HEAP_START     0x01000000
 #define STACK_TOP      0xC0000000
 
 //SERIAL
 
 #define COM1_PORT 0x3F8
+#define COM2_PORT 0x2F8
 #define BAUD_RATE 115200
 
 //IO
@@ -45,6 +47,7 @@
 #define PAGE_SIZE      4096
 #define PD_ENTRIES     1024
 #define PT_ENTRIES     1024
+#define BITMAP_START   0x01000000
 
 //PAGE FLAGS
 #define PG_PRESENT     (1 << 0)

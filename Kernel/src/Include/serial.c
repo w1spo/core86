@@ -37,3 +37,13 @@ void serial_write_line(uint16 serial_port, string str)
     serial_write_char(serial_port, '\r');
     serial_write_char(serial_port, '\n');
 }
+
+void serial_write_string(uint16 serial_port, string str)
+{
+    int i = 0;
+    while (str[i] != '\0')
+    {
+        serial_write_char(serial_port, str[i]);
+        i++;
+    }
+}

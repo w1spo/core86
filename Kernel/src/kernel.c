@@ -1,4 +1,5 @@
 #include "kernel.h"
+#include "Include/PMM.h"
 #include "Include/idt.h"
 #include "Include/pic.h"
 #include "Include/pit.h"
@@ -18,6 +19,8 @@ void k_init()
     serial_write_line(COM1_PORT, "[INFO] Enabling Interrupts");
     enable_sti();
     serial_write_line(COM1_PORT, "[INFO] Enabled STI");
+    pmm_init(512);
+    pmm_test();
     serial_write_line(COM1_PORT, "[INFO] Sleep Test");
     ksleep(1000);
     serial_write_line(COM1_PORT, "[INFO] Awake!");
