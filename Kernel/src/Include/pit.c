@@ -1,4 +1,5 @@
 #include "pit.h"
+#include "print.h"
 #include "serial.h"
 #include "io.h"
 #include "utils.h"
@@ -11,11 +12,11 @@ void init_pit(uint32 hz)
 {
     uint32 divisor = 1193182 / hz;  
     
-    serial_write_line(COM1_PORT, "[PIT] Setting frequency: ");
+    print("[INFO] [PIT] Setting frequency: ");
     char buf[20];
     itoa(hz, buf, 10);
-    serial_write_line(COM1_PORT, buf);
-    serial_write_line(COM1_PORT, " Hz");
+    print(buf);
+    print(" Hz\r\n");
     
     outb(0x43, 0x36);
     outb(0x40, divisor & 0xFF);

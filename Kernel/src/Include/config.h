@@ -59,6 +59,16 @@
 #define PG_DIRTY       (1 << 6)
 #define PG_GLOBAL      (1 << 8)
 
+//MSGs
+#define LOG_INFO    "[INFO]"
+#define LOG_WARN    "[WARN]"  
+#define LOG_ERROR   "[ERROR]"
+#define LOG_DEBUG   "[DEBUG]"
 
+#define LOG_PMM     "[PMM]"
+#define LOG_VMM     "[VMM]"
+#define LOG_HEAP    "[HEAP]"
+#define LOG_PIT     "[PIT]"
+#define LOG_SERIAL  "[SERIAL]"
 
 #endif
