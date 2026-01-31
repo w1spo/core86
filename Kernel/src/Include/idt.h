@@ -4,6 +4,13 @@
 #include "types.h"
 #include "serial.h"
 
+typedef struct {
+    uint32 ds;
+    uint32 edi, esi, ebp, esp, ebx, edx, ecx, eax;
+    uint32 int_no, err_code;
+    uint32 eip, cs, eflags, useresp, ss;
+} registers_t;
+
 struct idt_entry 
 {
     uint16 offset_low;

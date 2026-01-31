@@ -61,7 +61,7 @@ uint32 alloc_page(void)
             }
             
             uint32 addr = i * PAGE_SIZE;
-            kprintf("[INFO] [PMM] Allocated: i=%d, addr=0x%x, new_used=%d, new_last_idx=%d\r\n",
+            kprintf("[INFO] [PMM] Allocated: i=%d, addr=%x, new_used=%d, new_last_idx=%d\r\n",
                     i, addr, used_pages, last_alloc_index);
             return addr;
         }

@@ -36,7 +36,7 @@
 #define ICW4_8086    0x01
 
 // VIRTUAL ADRESSES
-
+#define TEST_HEAP_VIRT 0xC0100000
 #define KERNEL_VIRT    0xC0000000
 #define USER_SPACE     0x00000000
 #define HEAP_VIRT      0x40000000
@@ -48,6 +48,9 @@
 #define PD_ENTRIES     1024
 #define PT_ENTRIES     1024
 #define BITMAP_START   0x01000000
+#define VMM_PD_ADDR    0x2000000
+#define VMM_PT_ADDR    0x2001000
+#define HEAP_INIT_PAGES 4 
 
 //PAGE FLAGS
 #define PG_PRESENT     (1 << 0)
@@ -70,5 +73,32 @@
 #define LOG_HEAP    "[HEAP]"
 #define LOG_PIT     "[PIT]"
 #define LOG_SERIAL  "[SERIAL]"
+
+//VGA (INT 10H)
+
+#define VGA_WIDTH 80
+#define VGA_HEIGHT 25
+#define VGA_MEM 0xB8000
+#define VGA_HISTORY_SIZE 10000
+
+enum VGA_COLOUR {
+    VGA_BLACK = 0,
+    VGA_BLUE = 1,
+    VGA_GREEN = 2,
+    VGA_CYAN = 3,
+    VGA_RED = 4,
+    VGA_MAGENTA = 5,
+    VGA_BROWN = 6,
+    VGA_LIGHT_GREY = 7,
+    VGA_DARK_GREY = 8,
+    VGA_LIGHT_BLUE = 9,
+    VGA_LIGHT_GREEN = 10,
+    VGA_LIGHT_CYAN = 11,
+    VGA_LIGHT_RED = 12,
+    VGA_LIGHT_MAGENTA = 13,
+    VGA_LIGHT_BROWN = 14,
+    VGA_WHITE = 15,
+};
+
 
 #endif
