@@ -1,6 +1,5 @@
 #include "pit.h"
 #include "print.h"
-#include "serial.h"
 #include "io.h"
 #include "utils.h"
 
