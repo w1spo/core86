@@ -3,6 +3,7 @@
 #include "Include/idt.h"
 #include "Include/pic.h"
 #include "Include/pit.h"
+#include "Include/print.h"
 #include "Include/serial.h"
 #include "Include/config.h"
 #include "Include/VMM.h"
@@ -17,7 +18,7 @@ void k_init()
     vga_init();
     vga_colors(VGA_LIGHT_GREY, VGA_BLACK);
     vga_print("[INFO] [VGA] VGA READY");
-    
+
     serial_write_line(COM1_PORT, "[INFO] SERIAL READY");
     serial_write_line(COM1_PORT, "[INFO] GDT FLUSHED");
     idt_init();
@@ -35,12 +36,19 @@ void k_init()
     //heap_init();
     //test_vmm_heap();
     serial_write_line(COM1_PORT, "[INFO] Sleep Test");
+    printl("[INFO] Sleep Test");
     ksleep(1000);
+    printl("[INFO] Awake!");
     serial_write_line(COM1_PORT, "[INFO] Awake!");
     serial_write_line(COM1_PORT, "");
     serial_write_line(COM1_PORT, KERNEL_NAME);
     serial_write_line(COM1_PORT, KERNEL_VER);
     serial_write_line(COM1_PORT, BUILD_NO);
+    printc('\r');
+    printc('\n');
+    printl(KERNEL_NAME);
+    printl(KERNEL_VER);
+    printl(BUILD_NO);
 
 
     while(1) {
